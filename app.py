@@ -5,7 +5,7 @@ Author: BingleyPro
 Copyright: 2026
 """
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from markupsafe import escape
 
 app = Flask(__name__)
@@ -27,6 +27,17 @@ purchases = [
 @app.route("/")
 def home():
     return render_template("index.html", purchases=purchases)
+
+@app.route("/add", methods=["GET", "POST"])
+def add_purchase():
+    if request.method == "POST":
+        name = request.form["name"]
+        brand = request.form["brand"]
+        category = request.form["category"]
+        price = request.form["price"]
+        purchase_date = request.form["purchase_date"]
+
+    return render_template("add.html")
 
 if __name__ == "__main__":
     app.run()
