@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Archive</title>
+</head>
+<body>
+    <h1>Purchase Archive</h1>
+
+    {% for purchase in purchases %}
+        <div>
+            <h2>{{ purchase.name }}</h2>
+            <p>{{ purchase.brand }}</p>
+            <p>{{ purchase.category }}</p>
+            <p>{{ purchase.price }}</p>
+            <p>{{ purchase.purchase_date }}</p>
+        </div>
+    {% endfor %}
+</body>
+</html>
