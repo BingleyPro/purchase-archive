@@ -22,9 +22,39 @@ class PurchaseArchive:
         self.purchases.remove(purchase)
 
     def find_purchase(self, name = None, purchase_date = None, category = None, brand = None, price = None, notes = None):
-        # WIP
+
+        # Less strict matching
+        if name:
+            name = name.lower()
+        if category:
+            category = category.lower()
+        if brand:
+            brand = brand.lower()
+        if price:
+            try:
+                price = float(price)
+            except:
+                price = None
+                print("Price is in the wrong format, skipping search.")
+        if notes:
+            # Notes is an array of strings
+            for note in notes:
+                note = note.lower()
+
+        results = []
+
         for purchase in self.purchases:
-            pass
+            if (
+                (name is None or purchase.name.lower() == name)
+                and (purchase_date is None or purchase.purchase_date == purchase_date)
+                and (category is None or purchase.category is None or purchase.category.lower() == category)
+                and (brand is None or purchase.brand is None or purchase.brand.lower() == brand)
+                and (price is None or purchase.price == price)
+                and (notes is None or purchase.notes == notes)
+            ):
+                results.append(purchase)
+
+        return results
 
     def print_purchases(self):
         # Print table of purchases
@@ -58,7 +88,7 @@ def manage_input(user_input):
         case "1":
             # Add a new purchase
             name = input("Please enter the product name: ")
-            date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY): "), "%d-%m-%Y")
+            date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY): "), "%d-%m-%Y").date()
             brand = input("Please enter the product's brand (or leave empty): ") or None
             category = input("Please enter the product's category (or leave empty): ") or None
             price = float(input("Please enter the product's price (or leave empty): ")) or None
