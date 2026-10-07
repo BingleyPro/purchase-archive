@@ -15,9 +15,8 @@ class PurchaseArchive:
     def __init__(self):
         self.purchases = []
 
-    def add_purchase(self, purchase: Purchase) -> bool:
+    def add_purchase(self, purchase: Purchase):
         self.purchases.append(purchase)
-        return True
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
@@ -35,7 +34,6 @@ class PurchaseArchive:
 
     def find_purchase(self, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: list[str]|None = None):
 
-        # Less strict matching
         if name:
             name = name.lower()
         if category:
@@ -49,7 +47,7 @@ class PurchaseArchive:
                 price = None
                 print("Price is in the wrong format, skipping search.")
         if notes:
-            # Notes is an array of strings
+
             for note in notes:
                 note = note.lower()
 
@@ -76,8 +74,9 @@ class PurchaseArchive:
         for purchase in self.purchases:
             brand = purchase.brand or "-"
             price = purchase.price if purchase.price is not None else "-"
+            date = str(purchase.purchase_date)
 
-            print(f"{purchase.name:<25} {brand:<15} ${price:<10} {purchase.purchase_date:<12}")
+            print(f"{purchase.name:<25} {brand:<15} ${price:<10} {date:<12}")
 
 class Purchase:
     def __init__(self, name: str, purchase_date: dt.date, category: str|None = None, brand: str|None = None, price: float|None = None, notes: list[str]|None = None):
@@ -100,6 +99,32 @@ def prompt_user():
     print_choices()
     user_input = input("Enter your selection: ")
     manage_input(user_input)
+
+def ask_for_input(message: str, input_type: str):
+    user_input = input(message)
+    match input_type:
+        case "str"|"string":
+            if user_input:
+                return user_input
+        case "int":
+            try:
+                input_check = int(user_input)
+            except:
+                print("Invalid input.")
+                return ask_for_input(message, input_type)
+            return int(user_input)
+        case "float":
+            try:
+                input_check = float(user_input)
+            except:
+                print("Invalid input.")
+                return ask_for_input(message, input_type)
+            return float(user_input)
+        case "str, None":
+            return user_input
+        case _:
+            print("Invalid input type.")
+            return
 
 def manage_input(user_input):
     match str(user_input):
