@@ -95,6 +95,12 @@ def print_choices():
     print("4. Load a different archive")
     print("5. Settings")
 
+def prompt_user():
+    archive.print_purchases()
+    print_choices()
+    user_input = input("Enter your selection: ")
+    manage_input(user_input)
+
 def manage_input(user_input):
     match str(user_input):
         case "1":
@@ -151,7 +157,6 @@ def manage_input(user_input):
                     print("Purchase edited.")
                 else:
                     print("Editing canceled.")
-                    return
             elif len(purchases) < 6:
                 print("Multiple purchases found, please review below.\n")
                 index = 1
@@ -205,18 +210,20 @@ def manage_input(user_input):
                 price = None
 
             purchases = archive.find_purchase(name=name, purchase_date=date, brand=brand, category=category, price=price)
-            if len(purchases) == 0
         case "4":
             # Load a different archive
+            print("Coming soon!")
             pass
         case "5":
             # Settings
+            print("There are currently no settings!")
             pass
         case _:
             archive.print_purchases()
             print_choices()
-            user_input = input("Invaid input, try again: ")
+            user_input = input("Invalid input, try again: ")
             manage_input(user_input)
+    prompt_user()
             
 # Examples
 purchases = [
@@ -237,6 +244,8 @@ archive.print_purchases()
 print_choices()
 user_input = input("Enter your selection: ")
 manage_input(user_input)
+
+
 
 # Flask code
 """
