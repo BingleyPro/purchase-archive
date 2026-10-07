@@ -21,14 +21,8 @@ class PurchaseArchive:
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
-            self.purchases.remove(old_purchase)
+            self.purchases[self.purchases.index(old_purchase)] = new_purchase
         except:
-            return False
-        
-        try:
-            self.purchases.append(new_purchase)
-        except:
-            self.purchases.append(old_purchase)
             return False
         return True
 
@@ -119,6 +113,49 @@ def manage_input(user_input):
             archive.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price))
         case "2":
             # Edit an existing purchase
+            name = input("Please enter the product name to search for (if required): ") or None
+            date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY) to search for (if required): "), "%d-%m-%Y").date()
+            brand = input("Please enter the product's brand (or leave empty) to search for (if required): ") or None
+            category = input("Please enter the product's category (or leave empty) to search for (if required): ") or None
+            price_input = input("Please enter the product's price (or leave empty) to search for (if required): ")
+
+            if price_input:
+                price = float(price_input)
+            else:
+                price = None
+
+            purchases = archive.find_purchase(name=name, purchase_date=date, brand=brand, category=category, price=price)
+            if len(purchases) == 0:
+                print("No purchases found, please try again.")
+            elif len(purchases) == 1:
+                print("Purchase found, please confirm below.\n")
+                print(f"{purchases[0].name:<25} {brand:<15} ${price:<10} {purchases[0].purchase_date:<12}")
+                
+                current_purchase = purchases[0]
+
+                user_input = input("\nType \"yes\" to confirm, or anything else to cancel editing: ")
+
+                if user_input == "yes":
+                    new_name = input("Please enter the product name (if you want to edit it): ") or current_purchase.name
+                    new_date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): "), "%d-%m-%Y").date() or current_purchase.date
+                    new_brand = input("Please enter the product's brand (or leave empty) (if you want to edit it): ") or current_purchase.brand
+                    new_category = input("Please enter the product's category (or leave empty) (if you want to edit it): ") or current_purchase.category
+                    price_input = input("Please enter the product's price (or leave empty) (if you want to edit it): ")
+
+                    if price_input:
+                        new_price = float(price_input)
+                    else:
+                        new_price = current_purchase.price
+
+                    archive.edit_purchase(current_purchase, Purchase(name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes))
+                    print("Purchase edited.")
+                else:
+                    print("Editing canceled.")
+            elif len(purchases) < 6:
+                pass
+            else:
+                print("Too many purchases matched. Please try again with a stricter match.")
+            
             pass
         case "3":
             # Delete an existing purchase
