@@ -7,7 +7,7 @@ Copyright: 2026
 
 from flask import Flask, render_template, request
 import datetime as dt
-
+import csv
 
 app = Flask(__name__)
 
@@ -21,6 +21,22 @@ class PurchaseArchive:
     def delete_purchase(self, purchase):
         self.purchases.remove(purchase)
 
+    def find_purchase(self, name = None, purchase_date = None, category = None, brand = None, price = None, notes = None):
+        # WIP
+        for purchase in self.purchases:
+            pass
+
+    def print_purchases(self):
+        # Print table of purchases
+        print(f"{'Name':<25} {'Brand':<15} {'Price':<10} {'Date':<12}")
+        print("-" * 65)
+
+        for purchase in self.purchases:
+            brand = purchase.brand or "-"
+            price = purchase.price if purchase.price is not None else "-"
+
+            print(f"{purchase.name:<25} {brand:<15} ${price:<10} {purchase.purchase_date:<12}")
+
 class Purchase:
     def __init__(self, name: str, purchase_date: dt.date, category: str|None = None, brand: str|None = None, price: float|None = None, notes = None):
         self.name = name
@@ -30,6 +46,43 @@ class Purchase:
         self.purchase_date = purchase_date
         self.notes = notes
 
+def print_choices():
+    print("\n1. Add a new purchase")
+    print("2. Edit an existing purchase")
+    print("3. Delete an existing purchase")
+    print("4. Load a different archive")
+    print("5. Settings")
+
+def manage_input(user_input):
+    match str(user_input):
+        case "1":
+            # Add a new purchase
+            name = input("Please enter the product name: ")
+            date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY): "), "%d-%m-%Y")
+            brand = input("Please enter the product's brand (or leave empty): ") or None
+            category = input("Please enter the product's category (or leave empty): ") or None
+            price = float(input("Please enter the product's price (or leave empty): ")) or None
+
+            archive.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price))
+        case "2":
+            # Edit an existing purchase
+            pass
+        case "3":
+            # Delete an existing purchase
+            pass
+        case "4":
+            # Load a different archive
+            pass
+        case "5":
+            # Settings
+            pass
+        case _:
+            archive.print_purchases()
+            print_choices()
+            user_input = input("Invaid input, try again: ")
+            manage_input(user_input)
+            
+# Examples
 purchases = [
     Purchase("Electric Screwdriver", dt.date(2026, 10, 5), "Tool", price = 90.95),
     Purchase("Keyboard", dt.date(2026, 10, 1), "Computer", "Keychron", 210.00),
@@ -44,17 +97,10 @@ archive.add_purchase(purchases[2])
 # Functionality
 print("-----Personal Purchase Archive -----\n")
 
-# Print table of purchases
-print(f"{'Name':<25} {'Brand':<15} {'Price':<10} {'Date':<12}")
-print("-" * 65)
-
-for purchase in archive.purchases:
-    brand = purchase.brand or "-"
-    price = purchase.price if purchase.price is not None else "-"
-
-    print(f"{purchase.name:<25} {brand:<15} ${price:<10} {purchase.purchase_date:<12}")
-
-
+archive.print_purchases()
+print_choices()
+user_input = input("Enter your selection: ")
+manage_input(user_input)
 
 """
 @app.route("/")
