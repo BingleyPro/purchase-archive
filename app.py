@@ -15,13 +15,31 @@ class PurchaseArchive:
     def __init__(self):
         self.purchases = []
 
-    def add_purchase(self, purchase):
+    def add_purchase(self, purchase: Purchase) -> bool:
         self.purchases.append(purchase)
+        return True
 
-    def delete_purchase(self, purchase):
-        self.purchases.remove(purchase)
+    def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
+        try:
+            self.purchases.remove(old_purchase)
+        except:
+            return False
+        
+        try:
+            self.purchases.append(new_purchase)
+        except:
+            self.purchases.append(old_purchase)
+            return False
+        return True
 
-    def find_purchase(self, name = None, purchase_date = None, category = None, brand = None, price = None, notes = None):
+    def delete_purchase(self, purchase: Purchase) -> bool:
+        try:
+            self.purchases.remove(purchase)
+        except:
+            return False
+        return True
+
+    def find_purchase(self, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: list[str]|None = None):
 
         # Less strict matching
         if name:
@@ -30,7 +48,7 @@ class PurchaseArchive:
             category = category.lower()
         if brand:
             brand = brand.lower()
-        if price:
+        if price is not None:
             try:
                 price = float(price)
             except:
@@ -45,12 +63,12 @@ class PurchaseArchive:
 
         for purchase in self.purchases:
             if (
-                (name is None or purchase.name.lower() == name)
+                (name is None or name in purchase.name.lower())
                 and (purchase_date is None or purchase.purchase_date == purchase_date)
-                and (category is None or purchase.category is None or purchase.category.lower() == category)
-                and (brand is None or purchase.brand is None or purchase.brand.lower() == brand)
+                and (category is None or purchase.category is None or category in purchase.category.lower())
+                and (brand is None or purchase.brand is None or brand in purchase.brand.lower())
                 and (price is None or purchase.price == price)
-                and (notes is None or purchase.notes == notes)
+                and (notes is None or purchase.notes is None or notes in purchase.notes)
             ):
                 results.append(purchase)
 
@@ -68,7 +86,7 @@ class PurchaseArchive:
             print(f"{purchase.name:<25} {brand:<15} ${price:<10} {purchase.purchase_date:<12}")
 
 class Purchase:
-    def __init__(self, name: str, purchase_date: dt.date, category: str|None = None, brand: str|None = None, price: float|None = None, notes = None):
+    def __init__(self, name: str, purchase_date: dt.date, category: str|None = None, brand: str|None = None, price: float|None = None, notes: list[str]|None = None):
         self.name = name
         self.category = category
         self.brand = brand
@@ -91,7 +109,12 @@ def manage_input(user_input):
             date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY): "), "%d-%m-%Y").date()
             brand = input("Please enter the product's brand (or leave empty): ") or None
             category = input("Please enter the product's category (or leave empty): ") or None
-            price = float(input("Please enter the product's price (or leave empty): ")) or None
+            price_input = input("Please enter the product's price (or leave empty): ")
+
+            if price_input:
+                price = float(price_input)
+            else:
+                price = None
 
             archive.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price))
         case "2":
@@ -132,6 +155,7 @@ print_choices()
 user_input = input("Enter your selection: ")
 manage_input(user_input)
 
+# Flask code
 """
 @app.route("/")
 def home():
