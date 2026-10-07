@@ -8,6 +8,13 @@ Copyright: 2026
 from flask import Flask, render_template, request
 import datetime as dt
 import csv
+from enum import Enum
+
+class InputType(Enum):
+    STRING = 1
+    FLOAT = 2
+    INTEGER = 3
+    DATE = 4
 
 app = Flask(__name__)
 
@@ -21,7 +28,7 @@ class PurchaseArchive:
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
             self.purchases[self.purchases.index(old_purchase)] = new_purchase
-        except:
+        except ValueError:
             return False
         return True
 
@@ -100,28 +107,37 @@ def prompt_user():
     user_input = input("Enter your selection: ")
     manage_input(user_input)
 
-def ask_for_input(message: str, input_type: str):
+def ask_for_input(message: str, input_type: InputType, optional: bool):
     user_input = input(message)
+
+    if optional and user_input is (None or ""):
+        return user_input
+
     match input_type:
-        case "str"|"string":
+        case InputType.STRING:
             if user_input:
                 return user_input
-        case "int":
+            else:
+                print("Invalid input.")
+                return False
+        case InputType.INTEGER:
             try:
                 input_check = int(user_input)
             except:
                 print("Invalid input.")
-                return ask_for_input(message, input_type)
-            return int(user_input)
-        case "float":
+                return False
+            return input_check
+        case InputType.FLOAT:
             try:
                 input_check = float(user_input)
             except:
                 print("Invalid input.")
-                return ask_for_input(message, input_type)
+                return False
             return float(user_input)
-        case "str, None":
-            return user_input
+        
+        case InputType.DATE:
+            # Check if invalid date
+            return False
         case _:
             print("Invalid input type.")
             return
