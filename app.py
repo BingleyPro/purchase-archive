@@ -24,10 +24,31 @@ class PurchaseArchive:
         self.purchases = []
 
     def load_purchases(self, file_path: str):
-        pass
+        with open(file_path, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+
+            for row in reader:
+                name = row['name']
+                date = dt.date.strptime(row['purchase_date'], "%d-%m-%Y")
+                brand = row['brand']
+                category = row['category']
+                price = float(row['price'])
+                notes = row['notes']
+
+                self.add_purchase(Purchase(name=name, purchase_date=date, category=category, brand=brand, price=price))
+        return
+
+    def save_purchase(self, file_path: str, purchase: Purchase):
+        data = purchase._to_dict()
+
+        with open(file_path, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(data)
+        return
 
     def add_purchase(self, purchase: Purchase):
         self.purchases.append(purchase)
+        self.save_purchase(FILE_PATH, purchase) # TODO: fix running every time file is loaded as well
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
@@ -96,6 +117,9 @@ class Purchase:
         self.purchase_date = purchase_date
         self.notes = notes
 
+    def _to_dict(self):
+        return [self.name, self.purchase_date, self.brand, self.category, self.price, self.notes] # TODO: flip purchase_date for saving
+
 def ask_for_input(message: str, input_type: InputType, optional: bool):
     """Prompts the user for input with a given message. Handles validation based on the choosen input type, and enforces input unless optional."""
     user_input = input(message)
@@ -130,7 +154,7 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
             try:
                 input_check = dt.date.strptime(user_input, "%d-%m-%Y")
             except:
-                print("** Invalid input: enter a valid date (MM-DD-YYY&). **")
+                print("** Invalid input: enter a valid date (DD-MM-YYYY). **")
                 return ask_for_input(message, input_type, optional)
             return input_check
         case _:
@@ -265,9 +289,12 @@ def manage_home_input(user_input):
 
 # -------------
 ARCHIVE = PurchaseArchive()
-ARCHIVE.add_purchase(Purchase("Electric Screwdriver", dt.date(2026, 10, 5), "Tool", price = 90.95))
-ARCHIVE.add_purchase(Purchase("Keyboard", dt.date(2026, 10, 1), "Computer", "Keychron", 210.00)) 
-ARCHIVE.add_purchase(Purchase("A1 Mini", dt.date(2026, 9, 20), "3D Printer", "Bambu Lab", 394.99))
+FILE_PATH = 'example.csv'
+ARCHIVE.load_purchases(FILE_PATH)
+
+#ARCHIVE.add_purchase(Purchase("Electric Screwdriver", dt.date(2026, 10, 5), "Tool", price = 90.95))
+#ARCHIVE.add_purchase(Purchase("Keyboard", dt.date(2026, 10, 1), "Computer", "Keychron", 210.00)) 
+#ARCHIVE.add_purchase(Purchase("A1 Mini", dt.date(2026, 9, 20), "3D Printer", "Bambu Lab", 394.99))
 
 display_home_menu()
 
