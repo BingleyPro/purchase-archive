@@ -23,6 +23,9 @@ class PurchaseArchive:
     def __init__(self):
         self.purchases = []
 
+    def load_purchases(self, file_path: str):
+        pass
+
     def add_purchase(self, purchase: Purchase):
         self.purchases.append(purchase)
 
@@ -185,6 +188,14 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
         return False
     return current_purchase
 
+def confirm_purchase(purchase: Purchase, action: str) -> bool:
+    print("Please confirm the purchase below.\n")
+    print(f"{purchase.name:<25} {purchase.brand:<15} ${purchase.price:<10} {purchase.purchase_date:<12}")
+
+    user_input = ask_for_input(f"\nType \"yes\" to confirm, or anything else to cancel {action}: ", InputType.STRING, True)
+
+    return user_input == "yes"
+
 def manage_home_input(user_input):
     match str(user_input):
         case "1":
@@ -193,7 +204,7 @@ def manage_home_input(user_input):
             date = ask_for_input("Please enter the purchase date (DD-MM-YYYY): ", InputType.DATE, False)
             brand = ask_for_input("Please enter the product's brand (or leave empty): ", InputType.STRING, True)
             category = ask_for_input("Please enter the product's category (or leave empty): ", InputType.STRING, True)
-            price_input = ask_for_input("Please enter the product's price (or leave empty): ", InputType.FLOAT, True)
+            price = ask_for_input("Please enter the product's price (or leave empty): ", InputType.FLOAT, True)
 
             ARCHIVE.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price)) # type: ignore
         case "2":
@@ -203,31 +214,19 @@ def manage_home_input(user_input):
             if len(purchases) == 0:
                 print("No purchases found, please try again.")
             elif len(purchases) == 1:
-                print("Purchase found, please confirm below.\n")
-                print(f"{purchases[0].name:<25} {purchases[0].brand:<15} ${purchases[0].price:<10} {purchases[0].purchase_date:<12}")
-                
-                current_purchase = purchases[0]
-
-                user_input = ask_for_input("\nType \"yes\" to confirm, or anything else to cancel editing: ", InputType.STRING, True)
-
-                if user_input == "yes":
-                    prompt_and_edit_purchase(ARCHIVE, current_purchase)
+                if confirm_purchase(purchases[0], "editing"):
+                    prompt_and_edit_purchase(ARCHIVE, purchases[0])
                 else:
                     print("Editing canceled.")
             elif len(purchases) < 6:
                 current_purchase = choose_purchase(purchases)
 
                 if current_purchase:
-                    print(f"{current_purchase.name:<25} {current_purchase.brand:<15} ${current_purchase.price:<10} {current_purchase.purchase_date:<12}")
-
-                    user_input = ask_for_input("\nType \"yes\" to confirm, or anything else to cancel editing: ", InputType.STRING, True)
-
-                    if user_input == "yes":
-                        prompt_and_edit_purchase(ARCHIVE, current_purchase)
+                    if confirm_purchase(current_purchase, "editing"):
+                        prompt_and_edit_purchase(ARCHIVE,current_purchase)
                         print("Purchase edited.")
                     else:
                         print("Editing canceled.")
-                        return
             else:
                 print("Too many purchases matched. Please try again with a stricter match.")
         case "3":
@@ -237,29 +236,19 @@ def manage_home_input(user_input):
             if len(purchases) == 0:
                 print("No purchases found, please try again.")
             elif len(purchases) == 1:
-                print("Purchase found, please confirm below.\n")
-                print(f"{purchases[0].name:<25} {purchases[0].brand:<15} ${purchases[0].price:<10} {purchases[0].purchase_date:<12}")
-                
-                current_purchase = purchases[0]
-
-                user_input = ask_for_input("\nType \"yes\" to confirm, or anything else to cancel deleton: ", InputType.STRING, True)
-
-                if user_input == "yes":
-                    ARCHIVE.delete_purchase(current_purchase)
+                if confirm_purchase(purchases[0], "deleting"):
+                    ARCHIVE.delete_purchase(purchases[0])
                 else:
                     print("Deleting canceled.")
             elif len(purchases) < 6:
                 current_purchase = choose_purchase(purchases)
+
                 if current_purchase:
-                    print(f"{current_purchase.name:<25} {current_purchase.brand:<15} ${current_purchase.price:<10} {current_purchase.purchase_date:<12}")
-
-                    user_input = ask_for_input("\nType \"yes\" to confirm, or anything else to cancel deleting: ", InputType.STRING, True)
-
-                    if user_input == "yes":
+                    if confirm_purchase(current_purchase, "deleting"):
                         ARCHIVE.delete_purchase(current_purchase)
+                        print("Purchase deleted.")
                     else:
-                        print("Editing canceled.")
-                        return
+                        print("Deleting canceled.")
             else:
                 print("Too many purchases matched. Please try again with a stricter match.")
         case "4":
@@ -271,10 +260,7 @@ def manage_home_input(user_input):
             print("There are currently no settings!")
             pass
         case _:
-            ARCHIVE.print_purchases()
-            #print_choices()
-            user_input = input("Invalid input, try again: ")
-            manage_input(user_input)
+            print("** Invalid input, try again.**")
     display_home_menu()
 
 # -------------
