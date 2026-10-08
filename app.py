@@ -297,8 +297,24 @@ def manage_home_input(user_input):
             ARCHIVE.load_purchases()
         case "5":
             # Settings
-            print("There are currently no settings!")
-            pass
+            print("\n1. Change default file path")
+            print("2. View version information")
+            print("3. Return")
+
+            user_input = ask_for_input("Enter your selection: ", InputType.INTEGER, False)
+
+            match str(user_input):
+                case "1":
+                    user_input = ask_for_input("Please enter the new default file path: ", InputType.FILE_PATH, False)
+
+                    data = {
+                        "default_file_path": user_input
+                    }
+                    with open("settings.json", "w") as file:
+                        json.dump(data, file)
+                case "2":
+                    print("WIP!")
+            display_home_menu()
         case "6":
             # Exit
             sys.exit()
