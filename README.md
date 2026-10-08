@@ -1,6 +1,6 @@
 # Personal Purchase Archive
 
-This project is a tool for keeping tracking of purchases that you have made. It can store photos, serial numbers, reciepts, and other information about products. You can then go back in future to review your past purchases and reflect on them.
+This project is a tool for keeping tracking of purchases that you have made. It can store photos, serial numbers, receipts, and other information about products. You can then go back in future to review your past purchases and reflect on them.
 
 > Currently an active work in progress!
 
@@ -12,10 +12,17 @@ This project uses Python and Flask, although currently a terminal interface is b
 
 - Add purchases
 - Edit previous purchases
-- Delete previous purchases
+- Delete previous purchases (in progress)
 
 ## Planned Features
 
 - Upload or link files like PDFS (e.g receipts, photos of the product)
 - Manage multiple archives
-- Use a graphical interface (Flask or PyQt)
+
+## Potential Features
+
+- Graphical interface (Flask or PyQt)
+
+## How to Use
+
+Run app.py using python3.

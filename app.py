@@ -52,9 +52,8 @@ class PurchaseArchive:
                 price = float(price)
             except:
                 price = None
-                print("Price is in the wrong format, skipping search.")
+                print("Price is in the wrong format, skipping search filter.")
         if notes:
-
             for note in notes:
                 note = note.lower()
 
@@ -111,7 +110,7 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
     user_input = input(message)
 
     if optional and user_input is (None or ""):
-        return user_input
+        return None
 
     match input_type:
         case InputType.STRING:
@@ -133,124 +132,99 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
             except:
                 print("Invalid input.")
                 return False
-            return float(user_input)
+            return input_check
         
         case InputType.DATE:
             # Check if invalid date
-            return False
+            try:
+                input_check = dt.date.strptime(user_input, "%d-%m-%Y")
+            except:
+                print("Invalid input.")
+                return False
+            return input_check
         case _:
             print("Invalid input type.")
             return
+
+def search_and_select_purchase() -> list[Purchase]:
+    """Prompts the user to search for each field of data in a purchase, and returns all found purchases as an array."""
+    name = ask_for_input("Please enter the product name to search for (if required): ", InputType.STRING, True)
+    date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) to search for (if required): ", InputType.DATE, True)
+    brand = ask_for_input("Please enter the product's brand (or leave empty) to search for (if required): ", InputType.STRING, True)
+    category = ask_for_input("Please enter the product's category (or leave empty) to search for (if required): ", InputType.STRING, True)
+    price = ask_for_input("Please enter the product's price (or leave empty) to search for (if required): ", InputType.FLOAT, True)
+
+    purchases = archive.find_purchase(name=name, purchase_date=date, brand=brand, category=category, price=price) # type: ignore
+    return purchases
+
+def prompt_and_edit_purchase(current_purchase: Purchase) -> bool:
+    """Prompts the user to edit each field of data in a purchase, edits the purchase, and returns the success value."""
+    new_name = ask_for_input("Please enter the product name (if you want to edit it): ", InputType.STRING, True) or current_purchase.name
+    new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True) or current_purchase.purchase_date
+    new_brand = ask_for_input("Please enter the product's brand (or leave empty) (if you want to edit it): ", InputType.STRING, True) or current_purchase.brand
+    new_category = ask_for_input("Please enter the product's category (or leave empty) (if you want to edit it): ", InputType.STRING, True) or current_purchase.category
+    new_price = ask_for_input("Please enter the product's price (or leave empty) (if you want to edit it): ", InputType.FLOAT, True) or current_purchase.price
+
+    return archive.edit_purchase(current_purchase, Purchase(name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes)) # type: ignore
 
 def manage_input(user_input):
     match str(user_input):
         case "1":
             # Add a new purchase
-            name = input("Please enter the product name: ")
-            date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY): "), "%d-%m-%Y").date()
-            brand = input("Please enter the product's brand (or leave empty): ") or None
-            category = input("Please enter the product's category (or leave empty): ") or None
-            price_input = input("Please enter the product's price (or leave empty): ")
+            name = ask_for_input("Please enter the product name: ", InputType.STRING, False)
+            date = ask_for_input("Please enter the purchase date (DD-MM-YYYY): ", InputType.DATE, False)
+            brand = ask_for_input("Please enter the product's brand (or leave empty): ", InputType.STRING, True)
+            category = ask_for_input("Please enter the product's category (or leave empty): ", InputType.STRING, True)
+            price_input = ask_for_input("Please enter the product's price (or leave empty): ", InputType.FLOAT, True)
 
-            if price_input:
-                price = float(price_input)
-            else:
-                price = None
-
-            archive.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price))
+            archive.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price)) # type: ignore
         case "2":
             # Edit an existing purchase
-            name = input("Please enter the product name to search for (if required): ") or None
-            date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY) to search for (if required): "), "%d-%m-%Y").date()
-            brand = input("Please enter the product's brand (or leave empty) to search for (if required): ") or None
-            category = input("Please enter the product's category (or leave empty) to search for (if required): ") or None
-            price_input = input("Please enter the product's price (or leave empty) to search for (if required): ")
+            purchases = search_and_select_purchase()
 
-            if price_input:
-                price = float(price_input)
-            else:
-                price = None
-
-            purchases = archive.find_purchase(name=name, purchase_date=date, brand=brand, category=category, price=price)
             if len(purchases) == 0:
                 print("No purchases found, please try again.")
             elif len(purchases) == 1:
                 print("Purchase found, please confirm below.\n")
-                print(f"{purchases[0].name:<25} {brand:<15} ${price:<10} {purchases[0].purchase_date:<12}")
+                print(f"{purchases[0].name:<25} {purchases[0].brand:<15} ${purchases[0].price:<10} {purchases[0].purchase_date:<12}")
                 
                 current_purchase = purchases[0]
 
-                user_input = input("\nType \"yes\" to confirm, or anything else to cancel editing: ")
+                user_input = ask_for_input("\nType \"yes\" to confirm, or anything else to cancel editing: ", InputType.STRING, True)
 
                 if user_input == "yes":
-                    new_name = input("Please enter the product name (if you want to edit it): ") or current_purchase.name
-                    new_date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): "), "%d-%m-%Y").date() or current_purchase.date
-                    new_brand = input("Please enter the product's brand (or leave empty) (if you want to edit it): ") or current_purchase.brand
-                    new_category = input("Please enter the product's category (or leave empty) (if you want to edit it): ") or current_purchase.category
-                    price_input = input("Please enter the product's price (or leave empty) (if you want to edit it): ")
-
-                    if price_input:
-                        new_price = float(price_input)
-                    else:
-                        new_price = current_purchase.price
-
-                    archive.edit_purchase(current_purchase, Purchase(name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes))
-                    print("Purchase edited.")
+                    prompt_and_edit_purchase(current_purchase)
                 else:
                     print("Editing canceled.")
             elif len(purchases) < 6:
                 print("Multiple purchases found, please review below.\n")
                 index = 1
                 for purchase in purchases:
-                    print(f"{purchase.name:<25} {brand:<15} ${price:<10} {purchase.purchase_date:<12}")
+                    print(f"{purchase.name:<25} {purchase.brand:<15} ${purchase.price:<10} {purchase.purchase_date:<12}")
                     index += 1
-                user_input = input("\nType the corresponding number to select a purchase, or anything else to cancel.")
+                user_input = ask_for_input("\nType the corresponding number to select a purchase, or anything else to cancel.", InputType.STRING, True)
 
-                if int(user_input) > 0 and int(user_input) < len(purchases) + 1:
-                    current_purchase = purchases[int(user_input) - 1]
+                if int(user_input) > 0 and int(user_input) < len(purchases) + 1: # type: ignore
+                    current_purchase = purchases[int(user_input) - 1] # type: ignore
                 else:
                     print("Editing canceled.")
                     return
 
-                print(f"{current_purchase.name:<25} {brand:<15} ${price:<10} {current_purchase.purchase_date:<12}")
+                print(f"{current_purchase.name:<25} {current_purchase.brand:<15} ${current_purchase.price:<10} {current_purchase.purchase_date:<12}")
 
                 user_input = input("\nType \"yes\" to confirm, or anything else to cancel editing: ")
 
                 if user_input == "yes":
-                    new_name = input("Please enter the product name (if you want to edit it): ") or current_purchase.name
-                    new_date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): "), "%d-%m-%Y").date() or current_purchase.date
-                    new_brand = input("Please enter the product's brand (or leave empty) (if you want to edit it): ") or current_purchase.brand
-                    new_category = input("Please enter the product's category (or leave empty) (if you want to edit it): ") or current_purchase.category
-                    price_input = input("Please enter the product's price (or leave empty) (if you want to edit it): ")
-
-                    if price_input:
-                        new_price = float(price_input)
-                    else:
-                        new_price = current_purchase.price
-
-                    archive.edit_purchase(current_purchase, Purchase(name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes))
+                    prompt_and_edit_purchase(current_purchase)
                     print("Purchase edited.")
                 else:
                     print("Editing canceled.")
                     return
             else:
                 print("Too many purchases matched. Please try again with a stricter match.")
-            
-            pass
         case "3":
             # Delete an existing purchase
-            name = input("Please enter the product name to search for (if required): ") or None
-            date = dt.datetime.strptime(input("Please enter the purchase date (DD-MM-YYYY) to search for (if required): "), "%d-%m-%Y").date()
-            brand = input("Please enter the product's brand (or leave empty) to search for (if required): ") or None
-            category = input("Please enter the product's category (or leave empty) to search for (if required): ") or None
-            price_input = input("Please enter the product's price (or leave empty) to search for (if required): ")
-
-            if price_input:
-                price = float(price_input)
-            else:
-                price = None
-
-            purchases = archive.find_purchase(name=name, purchase_date=date, brand=brand, category=category, price=price)
+            purchases = search_and_select_purchase()
         case "4":
             # Load a different archive
             print("Coming soon!")
