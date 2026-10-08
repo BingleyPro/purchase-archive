@@ -12,7 +12,7 @@ This project uses Python and Flask, although currently a terminal interface is b
 
 - Add purchases
 - Edit previous purchases
-- Delete previous purchases (in progress)
+- Delete previous purchases
 
 ## Planned Features
 

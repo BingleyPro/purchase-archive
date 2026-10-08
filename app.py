@@ -225,6 +225,46 @@ def manage_input(user_input):
         case "3":
             # Delete an existing purchase
             purchases = search_and_select_purchase()
+
+            if len(purchases) == 0:
+                print("No purchases found, please try again.")
+            elif len(purchases) == 1:
+                print("Purchase found, please confirm below.\n")
+                print(f"{purchases[0].name:<25} {purchases[0].brand:<15} ${purchases[0].price:<10} {purchases[0].purchase_date:<12}")
+                
+                current_purchase = purchases[0]
+
+                user_input = ask_for_input("\nType \"yes\" to confirm, or anything else to cancel deleton: ", InputType.STRING, True)
+
+                if user_input == "yes":
+                    archive.delete_purchase(current_purchase)
+                else:
+                    print("Deleting canceled.")
+            elif len(purchases) < 6:
+                print("Multiple purchases found, please review below.\n")
+                index = 1
+                for purchase in purchases:
+                    print(f"{purchase.name:<25} {purchase.brand:<15} ${purchase.price:<10} {purchase.purchase_date:<12}")
+                    index += 1
+                user_input = ask_for_input("\nType the corresponding number to select a purchase, or anything else to cancel.", InputType.STRING, True)
+
+                if int(user_input) > 0 and int(user_input) < len(purchases) + 1: # type: ignore
+                    current_purchase = purchases[int(user_input) - 1] # type: ignore
+                else:
+                    print("Deleting canceled.")
+                    return
+
+                print(f"{current_purchase.name:<25} {current_purchase.brand:<15} ${current_purchase.price:<10} {current_purchase.purchase_date:<12}")
+
+                user_input = input("\nType \"yes\" to confirm, or anything else to cancel deleting: ")
+
+                if user_input == "yes":
+                    archive.delete_purchase(current_purchase)
+                else:
+                    print("Editing canceled.")
+                    return
+            else:
+                print("Too many purchases matched. Please try again with a stricter match.")
         case "4":
             # Load a different archive
             print("Coming soon!")
