@@ -1,12 +1,12 @@
 # Personal Purchase Archive
 
-This project is a tool for keeping tracking of purchases that you have made. It can store photos, serial numbers, receipts, and other information about products. You can then go back in future to review your past purchases and reflect on them.
+This project is a tool for keeping track of purchases that you have made.  You can then go back in future to review your past purchases and check any key information.
 
-> Currently an active work in progress!
+It will (coming soon!) be able store photos, serial numbers, receipts, and other information about products.
 
-This project uses Python and Flask, although currently a terminal interface is being used.
+> Currently an active work in progress! **This project is only recommended for alpha use at this stage.**
 
-**This project is only recommended for alpha use at this stage.**
+This project currently uses a terminal based interface.
 
 ## Features
 
@@ -18,7 +18,6 @@ This project uses Python and Flask, although currently a terminal interface is b
 ## Planned Features
 
 - Upload or link files like PDFS (e.g receipts, photos of the product)
-- Manage multiple archives
 
 ## Potential Features
 
@@ -27,4 +26,6 @@ This project uses Python and Flask, although currently a terminal interface is b
 
 ## How to Use
 
-Run app.py using python3.
+1. Initialise a virtual environment, and open it.
+2. Install everything in requirements.txt
+3. Run app.py using python3. Note that if the program asks for a file path, it is relative to the folder that app.py is located in.

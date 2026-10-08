@@ -206,8 +206,9 @@ def display_home_menu():
     print("2. Edit an existing purchase")
     print("3. Delete an existing purchase")
     print("4. Load a different archive")
-    print("5. Settings")
-    print("6. Exit")
+    print("5. Open purchase information")
+    print("6. Settings")
+    print("7. Exit")
 
     user_input = ask_for_input("Enter your selection: ", InputType.INTEGER, False)
     manage_home_input(user_input)
@@ -234,6 +235,14 @@ def confirm_purchase(purchase: Purchase, action: str) -> bool:
     user_input = ask_for_input(f"\nType \"yes\" to confirm, or anything else to cancel {action}: ", InputType.STRING, True)
 
     return user_input == "yes"
+
+def wait_before_continue():
+    ask_for_input("\nPress enter to continue.", InputType.STRING, True)
+    return
+
+def load_purchase_information(purchase: Purchase):
+    print("Work in progress!")
+    return
 
 def manage_home_input(user_input):
     match str(user_input):
@@ -290,13 +299,33 @@ def manage_home_input(user_input):
             else:
                 print("Too many purchases matched. Please try again with a stricter match.")
         case "4":
-            # Load a different archive
+            # -- Load a different archive --
             user_input = ask_for_input("Please enter the file path of the archive: ", InputType.FILE_PATH, False)
             ARCHIVE.purchases = []
             ARCHIVE.set_file_path(str(user_input))
             ARCHIVE.load_purchases()
         case "5":
-            # Settings
+            # -- Open purchase information --
+            purchases = search_and_select_purchase(archive=ARCHIVE)
+            
+            if len(purchases) == 0:
+                print("No purchases found, please try again.")
+            elif len(purchases) == 1:
+                if confirm_purchase(purchases[0], "selecting"):
+                    load_purchase_information(purchases[0])
+                else:
+                    print("Selecting canceled.")
+            elif len(purchases) < 6:
+                current_purchase = choose_purchase(purchases)
+                if current_purchase:
+                    if confirm_purchase(current_purchase, "selecting"):
+                        load_purchase_information(purchases[0])
+                    else:
+                        print("Selecting canceled.")
+            else:
+                print("Too many purchases matched. Please try again with a stricter match.")
+        case "6":
+            # -- Settings --
             print("\n1. Change default file path")
             print("2. View version information")
             print("3. Return")
@@ -305,17 +334,20 @@ def manage_home_input(user_input):
 
             match str(user_input):
                 case "1":
+                    # Change default file path
                     user_input = ask_for_input("Please enter the new default file path: ", InputType.FILE_PATH, False)
 
                     data = {
                         "default_file_path": user_input
                     }
                     with open("settings.json", "w") as file:
-                        json.dump(data, file)
+                        json.dump(data, file) # TODO: Should only change one line, currently overwrites whole file
                 case "2":
-                    print("WIP!")
+                    # View version information
+                    print("\nPersonal Purchase Archive (prerelease) by BingleyPro")
+                    wait_before_continue()
             display_home_menu()
-        case "6":
+        case "7":
             # Exit
             sys.exit()
         case _:
@@ -323,20 +355,32 @@ def manage_home_input(user_input):
     display_home_menu()
 
 # -------------
-# Check settings.json for default file. If exists, load it. Otherwise, prompt user for archive.
-with open("settings.json", "r") as file:
-    data = json.load(file)
-    file_path = data["default_file_path"]
+ARCHIVE = PurchaseArchive()
 
-    ARCHIVE = PurchaseArchive()
+if os.path.exists("settings.json"):
+    # Check settings.json for default file. If exists, load it. Otherwise, prompt user for archive.
+    with open("settings.json", "r") as file:
+        data = json.load(file)
+        file_path = data["default_file_path"]
 
-    if os.path.exists(file_path):
-        ARCHIVE.set_file_path("example.csv")
-        ARCHIVE.load_purchases()
-    else:
-        user_input = ask_for_input("Please enter the file path of the archive to open: ", InputType.FILE_PATH, False)
-        ARCHIVE.set_file_path(str(user_input))
-        ARCHIVE.load_purchases()
+        if os.path.exists(file_path):
+            ARCHIVE.set_file_path("example.csv")
+            ARCHIVE.load_purchases()
+        else:
+            user_input = ask_for_input("Please enter the file path of the archive to open: ", InputType.FILE_PATH, False)
+            ARCHIVE.set_file_path(str(user_input))
+            ARCHIVE.load_purchases()
+else:
+    # Create settings.json
+    user_input = ask_for_input("Please enter the file path of the archive to open (will open by default): ", InputType.FILE_PATH, False)
+    ARCHIVE.set_file_path(str(user_input))
+    ARCHIVE.load_purchases()
+
+    with open("settings.json", "x") as file:
+        data = {
+            "default_file_path": user_input
+         }
+        json.dump(data, file)
 
 display_home_menu()
 
