@@ -10,6 +10,7 @@ import datetime as dt
 import csv
 from enum import Enum
 from typing_extensions import Literal
+import sys
 
 class InputType(Enum):
     STRING = 1
@@ -22,9 +23,14 @@ class InputType(Enum):
 class PurchaseArchive:
     def __init__(self):
         self.purchases = []
+        self.file_path = ""
 
-    def load_purchases(self, file_path: str):
-        with open(file_path, mode='r', newline='') as file:
+    def set_file_path(self, file_path: str):
+        self.file_path = file_path
+        return
+
+    def load_purchases(self):
+        with open(self.file_path, mode='r', newline='') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -35,20 +41,21 @@ class PurchaseArchive:
                 price = float(row['price'])
                 notes = row['notes']
 
-                self.add_purchase(Purchase(name=name, purchase_date=date, category=category, brand=brand, price=price))
+                self.add_purchase(Purchase(name=name, purchase_date=date, category=category, brand=brand, price=price), False)
         return
 
-    def save_purchase(self, file_path: str, purchase: Purchase):
+    def save_purchase(self, purchase: Purchase):
         data = purchase._to_dict()
 
-        with open(file_path, mode='a', newline='') as file:
+        with open(self.file_path, mode='a') as file:
             writer = csv.writer(file)
             writer.writerow(data)
         return
 
-    def add_purchase(self, purchase: Purchase):
+    def add_purchase(self, purchase: Purchase, save: bool):
         self.purchases.append(purchase)
-        self.save_purchase(FILE_PATH, purchase) # TODO: fix running every time file is loaded as well
+        if save:
+            self.save_purchase(purchase)
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
@@ -118,7 +125,7 @@ class Purchase:
         self.notes = notes
 
     def _to_dict(self):
-        return [self.name, self.purchase_date, self.brand, self.category, self.price, self.notes] # TODO: flip purchase_date for saving
+        return [self.name, self.purchase_date.strftime("%d-%m-%Y"), self.brand, self.category, self.price, self.notes] # TODO: flip purchase_date for saving
 
 def ask_for_input(message: str, input_type: InputType, optional: bool):
     """Prompts the user for input with a given message. Handles validation based on the choosen input type, and enforces input unless optional."""
@@ -192,10 +199,10 @@ def display_home_menu():
     print("3. Delete an existing purchase")
     print("4. Load a different archive")
     print("5. Settings")
+    print("6. Exit")
 
     user_input = ask_for_input("Enter your selection: ", InputType.INTEGER, False)
     manage_home_input(user_input)
-
     return
 
 def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
@@ -230,7 +237,7 @@ def manage_home_input(user_input):
             category = ask_for_input("Please enter the product's category (or leave empty): ", InputType.STRING, True)
             price = ask_for_input("Please enter the product's price (or leave empty): ", InputType.FLOAT, True)
 
-            ARCHIVE.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price)) # type: ignore
+            ARCHIVE.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price), True) # type: ignore
         case "2":
             # -- Edit an existing purchase --
             purchases = search_and_select_purchase(archive=ARCHIVE)
@@ -266,7 +273,6 @@ def manage_home_input(user_input):
                     print("Deleting canceled.")
             elif len(purchases) < 6:
                 current_purchase = choose_purchase(purchases)
-
                 if current_purchase:
                     if confirm_purchase(current_purchase, "deleting"):
                         ARCHIVE.delete_purchase(current_purchase)
@@ -277,24 +283,25 @@ def manage_home_input(user_input):
                 print("Too many purchases matched. Please try again with a stricter match.")
         case "4":
             # Load a different archive
-            print("Coming soon!")
-            pass
+            user_input = ask_for_input("Please enter the file path of the archive: ", InputType.STRING, False)
+            ARCHIVE.purchases = []
+            ARCHIVE.set_file_path(str(user_input))
+            ARCHIVE.load_purchases()
         case "5":
             # Settings
             print("There are currently no settings!")
             pass
+        case "6":
+            # Exit
+            sys.exit()
         case _:
             print("** Invalid input, try again.**")
     display_home_menu()
 
 # -------------
 ARCHIVE = PurchaseArchive()
-FILE_PATH = 'example.csv'
-ARCHIVE.load_purchases(FILE_PATH)
-
-#ARCHIVE.add_purchase(Purchase("Electric Screwdriver", dt.date(2026, 10, 5), "Tool", price = 90.95))
-#ARCHIVE.add_purchase(Purchase("Keyboard", dt.date(2026, 10, 1), "Computer", "Keychron", 210.00)) 
-#ARCHIVE.add_purchase(Purchase("A1 Mini", dt.date(2026, 9, 20), "3D Printer", "Bambu Lab", 394.99))
+ARCHIVE.set_file_path("example.csv")
+ARCHIVE.load_purchases()
 
 display_home_menu()
 
