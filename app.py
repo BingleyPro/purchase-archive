@@ -7,16 +7,17 @@ Copyright: 2026
 
 from flask import Flask, render_template, request
 import datetime as dt
-import csv
+import csv, json
 from enum import Enum
 from typing_extensions import Literal
-import sys
+import sys, os
 
 class InputType(Enum):
     STRING = 1
     FLOAT = 2
     INTEGER = 3
     DATE = 4
+    FILE_PATH = 5
 
 #app = Flask(__name__)
 
@@ -56,6 +57,7 @@ class PurchaseArchive:
         self.purchases.append(purchase)
         if save:
             self.save_purchase(purchase)
+        return
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
@@ -114,6 +116,7 @@ class PurchaseArchive:
             date = str(purchase.purchase_date)
 
             print(f"{purchase.name:<25} {brand:<15} ${price:<10} {date:<12}")
+        return
 
 class Purchase:
     def __init__(self, name: str, purchase_date: dt.date, category: str|None = None, brand: str|None = None, price: float|None = None, notes: list[str]|None = None):
@@ -155,7 +158,6 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
                 print("** Invalid input: enter a valid floating point number. **")
                 return ask_for_input(message, input_type, optional)
             return input_check
-        
         case InputType.DATE:
             # Check if invalid date
             try:
@@ -164,6 +166,12 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
                 print("** Invalid input: enter a valid date (DD-MM-YYYY). **")
                 return ask_for_input(message, input_type, optional)
             return input_check
+        case InputType.FILE_PATH:
+            if os.path.exists(user_input):
+                return user_input
+            else:
+                print("** Invalid input: choosen file path does not exist. **")
+                return ask_for_input(message, input_type, optional)
         case _:
             print("Invalid input type.")
             return
@@ -283,7 +291,7 @@ def manage_home_input(user_input):
                 print("Too many purchases matched. Please try again with a stricter match.")
         case "4":
             # Load a different archive
-            user_input = ask_for_input("Please enter the file path of the archive: ", InputType.STRING, False)
+            user_input = ask_for_input("Please enter the file path of the archive: ", InputType.FILE_PATH, False)
             ARCHIVE.purchases = []
             ARCHIVE.set_file_path(str(user_input))
             ARCHIVE.load_purchases()
@@ -299,9 +307,20 @@ def manage_home_input(user_input):
     display_home_menu()
 
 # -------------
-ARCHIVE = PurchaseArchive()
-ARCHIVE.set_file_path("example.csv")
-ARCHIVE.load_purchases()
+# Check settings.json for default file. If exists, load it. Otherwise, prompt user for archive.
+with open("settings.json", "r") as file:
+    data = json.load(file)
+    file_path = data["default_file_path"]
+
+    ARCHIVE = PurchaseArchive()
+
+    if os.path.exists(file_path):
+        ARCHIVE.set_file_path("example.csv")
+        ARCHIVE.load_purchases()
+    else:
+        user_input = ask_for_input("Please enter the file path of the archive to open: ", InputType.FILE_PATH, False)
+        ARCHIVE.set_file_path(str(user_input))
+        ARCHIVE.load_purchases()
 
 display_home_menu()
 

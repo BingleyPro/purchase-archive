@@ -6,13 +6,14 @@ This project is a tool for keeping tracking of purchases that you have made. It 
 
 This project uses Python and Flask, although currently a terminal interface is being used.
 
-**This project is not recommended for use at this stage.**
+**This project is only recommended for alpha use at this stage.**
 
 ## Features
 
 - Add purchases
 - Edit previous purchases
 - Delete previous purchases
+- Load custom archives
 
 ## Planned Features
 
@@ -21,6 +22,7 @@ This project uses Python and Flask, although currently a terminal interface is b
 
 ## Potential Features
 
+- Drag-and-drop uploading
 - Graphical interface (Flask or PyQt)
 
 ## How to Use
