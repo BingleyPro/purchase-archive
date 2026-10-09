@@ -27,34 +27,47 @@ class PurchaseArchive:
     def __init__(self):
         self.purchases = []
         self.file_path = ""
+        self.next_id = 1
 
     def set_file_path(self, file_path: str):
         self.file_path = file_path
         return
 
     def load_purchases(self):
-        self.purchases = []
         with open(self.file_path, mode='r', newline='') as file:
             data = json.load(file)
 
-            for i in data["purchases"]:
-                id = i['id']
-                name = i['name']
-                date = dt.date.strptime(i['purchase_date'], "%d-%m-%Y")
-                brand = i['brand']
-                category = i['category']
-                price = i['price']
-                if price is not None:
-                    price = float(price)
-                notes = i['notes']
-                tags = i['tags']
-                files = i['files']
+        loaded_purchases = []
 
-                self.add_purchase(Purchase(id=id, name=name, purchase_date=date, category=category, brand=brand, price=price, files=files), False)
+        for i in data["purchases"]:
+            id = i['id']
+            name = i['name']
+            date = dt.date.strptime(i['purchase_date'], "%d-%m-%Y")
+            brand = i['brand']
+            category = i['category']
+            price = i['price']
+            if price is not None:
+                price = float(price)
+            notes = i['notes']
+            tags = i['tags']
+            files = i['files']
+
+            loaded_purchases.append(Purchase(id=id, name=name, purchase_date=date, category=category, brand=brand, price=price, notes=notes, tags=tags, files=files))
+
+        self.purchases = loaded_purchases
         return
 
+    def get_next_id(self):
+        with open(self.file_path, mode='r') as file:
+            data = json.load(file)
+
+        next_id = (data.get("metadata", {}).get("next_id", ""))
+
+        if next_id is None:
+            next_id = max((purchase.id for purchase in self.purchases), default=0) + 1
+        return next_id
+
     def save_to_file(self, increment_id: bool):
-        # TODO: use this instead of save_purchase
         purchases = []
         for purchase in self.purchases:
             purchases.append(purchase._to_dict())
@@ -62,10 +75,15 @@ class PurchaseArchive:
         with open(self.file_path, mode='r') as file:
             old_data = json.load(file)
 
+        if increment_id:
+            next_id = int(old_data.get("metadata", {}).get("next_id", "")) + 1
+        else:
+            next_id = int(old_data.get("metadata", {}).get("next_id", ""))
+
         new_data = {
             "metadata": {
                 "archive_name": old_data.get("metadata", {}).get("archive_name", ""),
-                "next_id": old_data.get("metadata", {}).get("next_id", "") + 1
+                "next_id": self.next_id
             },
             "backup_file_path": old_data.get("backup_file_path", ""),
             "purchases": purchases
@@ -110,9 +128,6 @@ class PurchaseArchive:
             except ValueError:
                 price = None
                 print("Price is in the wrong format, skipping search filter.")
-        if notes: # TODO: Make notes search work
-            for note in notes:
-                note = note.lower()
 
         results = []
 
@@ -123,7 +138,7 @@ class PurchaseArchive:
                 and (category is None or (purchase.category is not None and category in purchase.category.lower()))
                 and (brand is None or (purchase.brand is not None and brand in purchase.brand.lower()))
                 and (price is None or purchase.price == price)
-                and (notes is None or purchase.notes is None or notes in purchase.notes)
+                and matches_notes(purchase, notes)
             ):
                 results.append(purchase)
 
@@ -136,10 +151,10 @@ class PurchaseArchive:
 
         for purchase in self.purchases:
             brand = purchase.brand or "-"
-            price_display = f"{purchase.price:.2f}" if purchase.price is not None else "-"
+            price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
             date = str(purchase.purchase_date)
 
-            print(f"{purchase.name:<25} {brand:<15} ${price_display:<10} {date:<12}")
+            print(f"{purchase.name:<25} {brand:<15} {price_display:<10} {date:<12}")
         return
 
 class Purchase:
@@ -167,6 +182,16 @@ class Purchase:
             "files": self.files
         }
         return purchase
+
+def matches_notes(purchase: Purchase, search_text: str|None) -> bool:
+    if search_text is None:
+        return True
+
+    for note in (purchase.notes or []):
+        if search_text.lower() in note.get("text", "").lower():
+            return True
+
+    return False
 
 def ask_for_input(message: str, input_type: InputType, optional: bool):
     """Prompts the user for input with a given message. Handles validation based on the choosen input type, and enforces input unless optional."""
@@ -236,30 +261,35 @@ def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase
     if new_price is None:
         new_price = current_purchase.price
 
-    return archive.edit_purchase(current_purchase, Purchase(id=current_purchase.id, name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes)) # type: ignore
+    return archive.edit_purchase(current_purchase, Purchase(id=current_purchase.id, name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes, tags=current_purchase.tags, files=current_purchase.files)) # type: ignore
 
 def display_home_menu():
-    print("-----Personal Purchase Archive -----\n")
+    while True:
+        print("-----Personal Purchase Archive -----\n")
 
-    ARCHIVE.print_purchases()
+        ARCHIVE.print_purchases()
 
-    print("\n1. Add a new purchase")
-    print("2. Edit an existing purchase")
-    print("3. Delete an existing purchase")
-    print("4. Load a different archive")
-    print("5. Open purchase information")
-    print("6. Settings")
-    print("7. Exit")
+        print("\n1. Add a new purchase")
+        print("2. Edit an existing purchase")
+        print("3. Delete an existing purchase")
+        print("4. Load a different archive")
+        print("5. Open purchase information")
+        print("6. Settings")
+        print("7. Exit")
 
-    user_input = ask_for_input("Enter your selection: ", InputType.INTEGER, False)
-    manage_home_input(user_input)
-    return
+        user_input = ask_for_input("Enter your selection: ", InputType.INTEGER, False)
+
+        if user_input == 7 or "7":
+            break
+
+        manage_home_input(user_input)
 
 def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
     print("Multiple purchases found, please review below.\n")
 
     for index, purchase in enumerate(purchases, start=1):
-        print(f"{index}. {purchase.name:<25} {purchase.brand:<15} ${purchase.price:<10} {purchase.purchase_date:<12}")
+        price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
+        print(f"{index}. {purchase.name:<25} {purchase.brand:<15} {price_display:<10} {purchase.purchase_date:<12}")
 
     user_input = ask_for_input("\nType the corresponding number to select a purchase, or anything else to cancel.", InputType.STRING, True)
 
@@ -278,7 +308,8 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
 
 def confirm_purchase(purchase: Purchase, action: str) -> bool:
     print("Please confirm the purchase below.\n")
-    print(f"{purchase.name:<25} {purchase.brand:<15} ${purchase.price:<10} {purchase.purchase_date:<12}")
+    price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
+    print(f"{purchase.name:<25} {purchase.brand:<15} ${price_display:<10} {purchase.purchase_date:<12}")
 
     user_input = ask_for_input(f"\nType \"yes\" to confirm, or anything else to cancel {action}: ", InputType.STRING, True)
 
@@ -303,7 +334,8 @@ def manage_home_input(user_input):
             category = ask_for_input("Please enter the product's category (or leave empty): ", InputType.STRING, True)
             price = ask_for_input("Please enter the product's price (or leave empty): ", InputType.FLOAT, True)
 
-            ARCHIVE.add_purchase(Purchase(name=name, purchase_date=date, brand=brand, category=category, price=price), True) # type: ignore
+            purchase_id = ARCHIVE.get_next_id()
+            ARCHIVE.add_purchase(Purchase(id=purchase_id, name=name, purchase_date=date, brand=brand, category=category, price=price), True) # type: ignore
         case "2":
             # -- Edit an existing purchase --
             purchases = search_and_select_purchase(archive=ARCHIVE)
@@ -402,7 +434,6 @@ def manage_home_input(user_input):
             sys.exit()
         case _:
             print("** Invalid input, try again.**")
-    display_home_menu()
 
 # -------------
 ARCHIVE = PurchaseArchive()
