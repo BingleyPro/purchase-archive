@@ -1,0 +1,25 @@
+{
+    "purchases": {
+        "1": {
+            "name": "Keyboard",
+            "date": "01-10-2026",
+            "brand": "Keychron",
+            "category": "Computer",
+            "price": 394.99,
+            "notes": {
+                "1": {
+                    "text": "This is a note.",
+                    "creation_date": "03-10-2026"
+                }
+            },
+            "files": {
+                "1": {
+                    "name": "Receipt",
+                    "type": "receipt",
+                    "format": "pdf",
+                    "file_path": "/files/receipts/keyboard.pdf"
+                }
+            }
+        }
+    }
+}

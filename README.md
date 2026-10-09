@@ -23,6 +23,7 @@ This project currently uses a terminal based interface.
 
 - Drag-and-drop uploading
 - Graphical interface (Flask or PyQt)
+- Encyription?
 
 ## How to Use
 

@@ -5,9 +5,11 @@ Author: BingleyPro
 Copyright: 2026
 """
 
+from __future__ import annotations
+
 from flask import Flask, render_template, request
 import datetime as dt
-import csv, json
+import json
 from enum import Enum
 from typing_extensions import Literal
 import sys, os
@@ -32,15 +34,15 @@ class PurchaseArchive:
 
     def load_purchases(self):
         with open(self.file_path, mode='r', newline='') as file:
-            reader = csv.DictReader(file)
+            data = json.load(file)
 
-            for row in reader:
-                name = row['name']
-                date = dt.date.strptime(row['purchase_date'], "%d-%m-%Y")
-                brand = row['brand']
-                category = row['category']
-                price = float(row['price'])
-                notes = row['notes']
+            for i in data["purchases"].values():
+                name = i['name']
+                date = dt.date.strptime(i['date'], "%d-%m-%Y")
+                brand = i['brand']
+                category = i['category']
+                price = float(i['price'])
+                notes = i['notes']
 
                 self.add_purchase(Purchase(name=name, purchase_date=date, category=category, brand=brand, price=price), False)
         return
@@ -48,10 +50,21 @@ class PurchaseArchive:
     def save_purchase(self, purchase: Purchase):
         data = purchase._to_dict()
 
-        with open(self.file_path, mode='a') as file:
-            writer = csv.writer(file)
-            writer.writerow(data)
+        #with open(self.file_path, mode='a') as file:
+        #    writer = csv.writer(file)
+        #    writer.writerow(data)
         return
+
+    def save_to_file(self):
+        # TODO: use this instead of save_purchase
+        data = {"purchases": {}} # create structure
+        for purchase in self.purchases:
+            data = purchase._to_dict()
+        data = {} 
+
+        with open(self.file_path, mode='w') as file:
+            json.dump(data, file, indent=4)
+        pass
 
     def add_purchase(self, purchase: Purchase, save: bool):
         self.purchases.append(purchase)
@@ -128,13 +141,13 @@ class Purchase:
         self.notes = notes
 
     def _to_dict(self):
-        return [self.name, self.purchase_date.strftime("%d-%m-%Y"), self.brand, self.category, self.price, self.notes] # TODO: flip purchase_date for saving
+        return [self.name, self.purchase_date.strftime("%d-%m-%Y"), self.brand, self.category, self.price, self.notes]
 
 def ask_for_input(message: str, input_type: InputType, optional: bool):
     """Prompts the user for input with a given message. Handles validation based on the choosen input type, and enforces input unless optional."""
     user_input = input(message)
 
-    if optional and user_input is (None or ""):
+    if optional and user_input == "":
         return None
 
     match input_type:
@@ -217,14 +230,16 @@ def display_home_menu():
 def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
     print("Multiple purchases found, please review below.\n")
 
-    for index, purchase in enumerate(purchases):
-        print(f"{purchase.name:<25} {purchase.brand:<15} ${purchase.price:<10} {purchase.purchase_date:<12}")
+    for index, purchase in enumerate(purchases, start=1):
+        print(f"{index}. {purchase.name:<25} {purchase.brand:<15} ${purchase.price:<10} {purchase.purchase_date:<12}")
 
     user_input = ask_for_input("\nType the corresponding number to select a purchase, or anything else to cancel.", InputType.STRING, True)
-
-    if int(user_input) > 0 and int(user_input) < len(purchases) + 1: # type: ignore
-        current_purchase = purchases[int(user_input) - 1] # type: ignore
-    else:
+    try:
+        if int(user_input) > 0 and int(user_input) < len(purchases) + 1: # type: ignore
+            current_purchase = purchases[int(user_input) - 1] # type: ignore
+        else:
+            return False
+    except:
         return False
     return current_purchase
 
@@ -242,6 +257,7 @@ def wait_before_continue():
 
 def load_purchase_information(purchase: Purchase):
     print("Work in progress!")
+    # TODO: load purchase information
     return
 
 def manage_home_input(user_input):
@@ -337,11 +353,12 @@ def manage_home_input(user_input):
                     # Change default file path
                     user_input = ask_for_input("Please enter the new default file path: ", InputType.FILE_PATH, False)
 
-                    data = {
-                        "default_file_path": user_input
-                    }
                     with open("settings.json", "w") as file:
-                        json.dump(data, file) # TODO: Should only change one line, currently overwrites whole file
+                        data = json.load(file)
+
+                        data["default_file_path"] = user_input
+
+                        json.dump(data, file)
                 case "2":
                     # View version information
                     print("\nPersonal Purchase Archive (prerelease) by BingleyPro")
@@ -364,7 +381,7 @@ if os.path.exists("settings.json"):
         file_path = data["default_file_path"]
 
         if os.path.exists(file_path):
-            ARCHIVE.set_file_path("example.csv")
+            ARCHIVE.set_file_path(file_path)
             ARCHIVE.load_purchases()
         else:
             user_input = ask_for_input("Please enter the file path of the archive to open: ", InputType.FILE_PATH, False)
