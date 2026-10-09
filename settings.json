@@ -1,1 +1,8 @@
-{"default_file_path": "database.json"}
+{
+    "default_file_path": "database.json",
+    "quick_access_archives": [
+        "other_database.json"
+    ],
+    "skip_delete_confirmation": false,
+    "skip_edit_confirmation": false
+}
