@@ -37,6 +37,7 @@ class PurchaseArchive:
             data = json.load(file)
 
             for i in data["purchases"].values():
+                id = i['id']
                 name = i['name']
                 date = dt.date.strptime(i['date'], "%d-%m-%Y")
                 brand = i['brand']
@@ -44,32 +45,34 @@ class PurchaseArchive:
                 price = float(i['price'])
                 notes = i['notes']
 
-                self.add_purchase(Purchase(name=name, purchase_date=date, category=category, brand=brand, price=price), False)
-        return
-
-    def save_purchase(self, purchase: Purchase):
-        data = purchase._to_dict()
-
-        #with open(self.file_path, mode='a') as file:
-        #    writer = csv.writer(file)
-        #    writer.writerow(data)
+                self.add_purchase(Purchase(id=id, name=name, purchase_date=date, category=category, brand=brand, price=price), False)
         return
 
     def save_to_file(self):
         # TODO: use this instead of save_purchase
-        data = {"purchases": {}} # create structure
+        purchases = []
         for purchase in self.purchases:
-            data = purchase._to_dict()
-        data = {} 
+            purchases.append(purchase._to_dict())
+
+        with open(self.file_path, mode='r') as file:
+            old_data = json.load(file, indent=4)
+
+        new_data = {
+            "metadata": {
+                "archive_name": old_data.get("metadata", {}).get("archive_name", "")
+            },
+            "backup_file_path": old_data.get("backup_file_path", ""),
+            "purchases": purchases
+        }
 
         with open(self.file_path, mode='w') as file:
-            json.dump(data, file, indent=4)
-        pass
+            json.dump(new_data, file, indent=4)
+        return
 
     def add_purchase(self, purchase: Purchase, save: bool):
         self.purchases.append(purchase)
         if save:
-            self.save_purchase(purchase)
+            self.save_to_file()
         return
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
@@ -132,16 +135,30 @@ class PurchaseArchive:
         return
 
 class Purchase:
-    def __init__(self, name: str, purchase_date: dt.date, category: str|None = None, brand: str|None = None, price: float|None = None, notes: list[str]|None = None):
+    def __init__(self, id: int, name: str, purchase_date: dt.date, category: str|None = None, brand: str|None = None, price: float|None = None, tags: list[str]|None = None, notes: list[dict]|None = None, files: list[dict]|None = None):
+        self.id = id
         self.name = name
         self.category = category
         self.brand = brand
         self.price = price
         self.purchase_date = purchase_date
+        self.tags = tags
         self.notes = notes
+        self.files = files
 
     def _to_dict(self):
-        return [self.name, self.purchase_date.strftime("%d-%m-%Y"), self.brand, self.category, self.price, self.notes]
+        purchase = {
+            "id": self.id,
+            "name": self.name,
+            "purchase_date": self.purchase_date.strftime("%d-%m-%Y"),
+            "brand": self.brand,
+            "category": self.category,
+            "tags": self.tags,
+            "price": self.price,
+            "notes": self.notes,
+            "files": self.files
+        }
+        return purchase
 
 def ask_for_input(message: str, input_type: InputType, optional: bool):
     """Prompts the user for input with a given message. Handles validation based on the choosen input type, and enforces input unless optional."""
