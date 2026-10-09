@@ -7,7 +7,7 @@ Copyright: 2026
 
 from __future__ import annotations
 
-from flask import Flask, render_template, request
+#from flask import Flask, render_template, request
 import datetime as dt
 import json
 from enum import Enum
@@ -33,33 +33,39 @@ class PurchaseArchive:
         return
 
     def load_purchases(self):
+        self.purchases = []
         with open(self.file_path, mode='r', newline='') as file:
             data = json.load(file)
 
-            for i in data["purchases"].values():
+            for i in data["purchases"]:
                 id = i['id']
                 name = i['name']
-                date = dt.date.strptime(i['date'], "%d-%m-%Y")
+                date = dt.date.strptime(i['purchase_date'], "%d-%m-%Y")
                 brand = i['brand']
                 category = i['category']
-                price = float(i['price'])
+                price = i['price']
+                if price is not None:
+                    price = float(price)
                 notes = i['notes']
+                tags = i['tags']
+                files = i['files']
 
-                self.add_purchase(Purchase(id=id, name=name, purchase_date=date, category=category, brand=brand, price=price), False)
+                self.add_purchase(Purchase(id=id, name=name, purchase_date=date, category=category, brand=brand, price=price, files=files), False)
         return
 
-    def save_to_file(self):
+    def save_to_file(self, increment_id: bool):
         # TODO: use this instead of save_purchase
         purchases = []
         for purchase in self.purchases:
             purchases.append(purchase._to_dict())
 
         with open(self.file_path, mode='r') as file:
-            old_data = json.load(file, indent=4)
+            old_data = json.load(file)
 
         new_data = {
             "metadata": {
-                "archive_name": old_data.get("metadata", {}).get("archive_name", "")
+                "archive_name": old_data.get("metadata", {}).get("archive_name", ""),
+                "next_id": old_data.get("metadata", {}).get("next_id", "") + 1
             },
             "backup_file_path": old_data.get("backup_file_path", ""),
             "purchases": purchases
@@ -72,12 +78,13 @@ class PurchaseArchive:
     def add_purchase(self, purchase: Purchase, save: bool):
         self.purchases.append(purchase)
         if save:
-            self.save_to_file()
+            self.save_to_file(True)
         return
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
             self.purchases[self.purchases.index(old_purchase)] = new_purchase
+            self.save_to_file(False)
         except ValueError:
             return False
         return True
@@ -85,11 +92,12 @@ class PurchaseArchive:
     def delete_purchase(self, purchase: Purchase) -> bool:
         try:
             self.purchases.remove(purchase)
+            self.save_to_file(False)
         except:
             return False
         return True
 
-    def find_purchase(self, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: list[str]|None = None):
+    def find_purchase(self, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: str|None = None):
         if name:
             name = name.lower()
         if category:
@@ -99,10 +107,10 @@ class PurchaseArchive:
         if price is not None:
             try:
                 price = float(price)
-            except:
+            except ValueError:
                 price = None
                 print("Price is in the wrong format, skipping search filter.")
-        if notes:
+        if notes: # TODO: Make notes search work
             for note in notes:
                 note = note.lower()
 
@@ -112,8 +120,8 @@ class PurchaseArchive:
             if (
                 (name is None or name in purchase.name.lower())
                 and (purchase_date is None or purchase.purchase_date == purchase_date)
-                and (category is None or purchase.category is None or category in purchase.category.lower())
-                and (brand is None or purchase.brand is None or brand in purchase.brand.lower())
+                and (category is None or (purchase.category is not None and category in purchase.category.lower()))
+                and (brand is None or (purchase.brand is not None and brand in purchase.brand.lower()))
                 and (price is None or purchase.price == price)
                 and (notes is None or purchase.notes is None or notes in purchase.notes)
             ):
@@ -128,10 +136,10 @@ class PurchaseArchive:
 
         for purchase in self.purchases:
             brand = purchase.brand or "-"
-            price = purchase.price if purchase.price is not None else "-"
+            price_display = f"{purchase.price:.2f}" if purchase.price is not None else "-"
             date = str(purchase.purchase_date)
 
-            print(f"{purchase.name:<25} {brand:<15} ${price:<10} {date:<12}")
+            print(f"{purchase.name:<25} {brand:<15} ${price_display:<10} {date:<12}")
         return
 
 class Purchase:
@@ -177,14 +185,14 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
         case InputType.INTEGER:
             try:
                 input_check = int(user_input)
-            except:
+            except ValueError:
                 print("** Invalid input: enter a valid integer. **")
                 return ask_for_input(message, input_type, optional)
             return input_check
         case InputType.FLOAT:
             try:
                 input_check = float(user_input)
-            except:
+            except ValueError:
                 print("** Invalid input: enter a valid floating point number. **")
                 return ask_for_input(message, input_type, optional)
             return input_check
@@ -192,7 +200,7 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
             # Check if invalid date
             try:
                 input_check = dt.date.strptime(user_input, "%d-%m-%Y")
-            except:
+            except ValueError:
                 print("** Invalid input: enter a valid date (DD-MM-YYYY). **")
                 return ask_for_input(message, input_type, optional)
             return input_check
@@ -219,13 +227,16 @@ def search_and_select_purchase(archive: PurchaseArchive) -> list[Purchase]:
 
 def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase) -> bool:
     """Prompts the user to edit each field of data in a purchase, edits the purchase, and returns the success value."""
+    #print("For any input below, you can type %clear% to clear the original.")
     new_name = ask_for_input("Please enter the product name (if you want to edit it): ", InputType.STRING, True) or current_purchase.name
     new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True) or current_purchase.purchase_date
     new_brand = ask_for_input("Please enter the product's brand (or leave empty) (if you want to edit it): ", InputType.STRING, True) or current_purchase.brand
     new_category = ask_for_input("Please enter the product's category (or leave empty) (if you want to edit it): ", InputType.STRING, True) or current_purchase.category
-    new_price = ask_for_input("Please enter the product's price (or leave empty) (if you want to edit it): ", InputType.FLOAT, True) or current_purchase.price
+    new_price = ask_for_input("Please enter the product's price (or leave empty) (if you want to edit it): ", InputType.FLOAT, True)
+    if new_price is None:
+        new_price = current_purchase.price
 
-    return archive.edit_purchase(current_purchase, Purchase(name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes)) # type: ignore
+    return archive.edit_purchase(current_purchase, Purchase(id=current_purchase.id, name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes)) # type: ignore
 
 def display_home_menu():
     print("-----Personal Purchase Archive -----\n")
@@ -251,12 +262,17 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
         print(f"{index}. {purchase.name:<25} {purchase.brand:<15} ${purchase.price:<10} {purchase.purchase_date:<12}")
 
     user_input = ask_for_input("\nType the corresponding number to select a purchase, or anything else to cancel.", InputType.STRING, True)
+
+    if user_input is None:
+        return False
+
     try:
-        if int(user_input) > 0 and int(user_input) < len(purchases) + 1: # type: ignore
-            current_purchase = purchases[int(user_input) - 1] # type: ignore
+        user_input = int(user_input) # type: ignore
+        if user_input > 0 and user_input < len(purchases) + 1: # type: ignore
+            current_purchase = purchases[user_input - 1] # type: ignore
         else:
             return False
-    except:
+    except ValueError:
         return False
     return current_purchase
 
@@ -352,7 +368,7 @@ def manage_home_input(user_input):
                 current_purchase = choose_purchase(purchases)
                 if current_purchase:
                     if confirm_purchase(current_purchase, "selecting"):
-                        load_purchase_information(purchases[0])
+                        load_purchase_information(current_purchase)
                     else:
                         print("Selecting canceled.")
             else:
@@ -370,17 +386,17 @@ def manage_home_input(user_input):
                     # Change default file path
                     user_input = ask_for_input("Please enter the new default file path: ", InputType.FILE_PATH, False)
 
-                    with open("settings.json", "w") as file:
+                    with open("settings.json", "r") as file:
                         data = json.load(file)
 
-                        data["default_file_path"] = user_input
+                    data["default_file_path"] = user_input
 
-                        json.dump(data, file)
+                    with open("settings.json", "w") as file:
+                        json.dump(data, file, indent=4)
                 case "2":
                     # View version information
                     print("\nPersonal Purchase Archive (prerelease) by BingleyPro")
                     wait_before_continue()
-            display_home_menu()
         case "7":
             # Exit
             sys.exit()

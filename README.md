@@ -15,6 +15,15 @@ This project currently uses a terminal based interface, along with JSON for stor
 - Delete previous purchases
 - Load custom archives
 
+## Current Issues / Missing Important Features
+
+- Notes search does not work
+- There is no way to clear an existing field when editing a purchase
+- File path checking also matches dictionaries, which could cause errors
+- Loading a new archive clears purchases before trying to load the new archive, possible corruption loss
+- Better file handling for invalid or corrupted files
+- No way to create an archive
+
 ## Planned Features
 
 - Upload or link files like PDFs (e.g receipts, photos of the product)

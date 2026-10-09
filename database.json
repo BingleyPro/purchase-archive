@@ -1,6 +1,7 @@
 {
     "metadata": {
-        "archive_name": "Personal Archive"
+        "archive_name": "Personal Archive",
+        "next_id": 4
     },
     "backup_file_path": "",
     "purchases": [
