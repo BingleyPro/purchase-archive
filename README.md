@@ -17,10 +17,8 @@ This project currently uses a terminal based interface, along with JSON for stor
 
 ## Current Issues / Missing Important Features
 
-- Notes search does not work
+- Notes search does now work, but there is no user option
 - There is no way to clear an existing field when editing a purchase
-- File path checking also matches dictionaries, which could cause errors
-- Loading a new archive clears purchases before trying to load the new archive, possible corruption loss
 - Better file handling for invalid or corrupted files
 - No way to create an archive
 

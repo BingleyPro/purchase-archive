@@ -55,17 +55,20 @@ class PurchaseArchive:
             loaded_purchases.append(Purchase(id=id, name=name, purchase_date=date, category=category, brand=brand, price=price, notes=notes, tags=tags, files=files))
 
         self.purchases = loaded_purchases
+
+        stored_id = data.get("metadata", {}).get("next_id", "")
+        minimum_id = max((purchase.id for purchase in loaded_purchases), default=0) + 1
+
+        if stored_id is not None:
+            self.next_id = max(int(stored_id), minimum_id)
+        else:
+            self.next_id = minimum_id
         return
 
-    def get_next_id(self):
-        with open(self.file_path, mode='r') as file:
-            data = json.load(file)
-
-        next_id = (data.get("metadata", {}).get("next_id", ""))
-
-        if next_id is None:
-            next_id = max((purchase.id for purchase in self.purchases), default=0) + 1
-        return next_id
+    def get_next_id(self) -> int:
+        purchase_id = self.next_id
+        self.next_id += 1
+        return purchase_id
 
     def save_to_file(self, increment_id: bool):
         purchases = []
@@ -74,11 +77,6 @@ class PurchaseArchive:
 
         with open(self.file_path, mode='r') as file:
             old_data = json.load(file)
-
-        if increment_id:
-            next_id = int(old_data.get("metadata", {}).get("next_id", "")) + 1
-        else:
-            next_id = int(old_data.get("metadata", {}).get("next_id", ""))
 
         new_data = {
             "metadata": {
@@ -111,7 +109,7 @@ class PurchaseArchive:
         try:
             self.purchases.remove(purchase)
             self.save_to_file(False)
-        except:
+        except ValueError:
             return False
         return True
 
@@ -195,49 +193,49 @@ def matches_notes(purchase: Purchase, search_text: str|None) -> bool:
 
 def ask_for_input(message: str, input_type: InputType, optional: bool):
     """Prompts the user for input with a given message. Handles validation based on the choosen input type, and enforces input unless optional."""
-    user_input = input(message)
+    while True:
+        user_input = input(message)
 
-    if optional and user_input == "":
-        return None
+        if optional and user_input == "":
+            return None
 
-    match input_type:
-        case InputType.STRING:
-            if user_input:
-                return user_input
-            else:
-                print("** Invalid input: an input is required. **")
-                return ask_for_input(message, input_type, optional)
-        case InputType.INTEGER:
-            try:
-                input_check = int(user_input)
-            except ValueError:
-                print("** Invalid input: enter a valid integer. **")
-                return ask_for_input(message, input_type, optional)
-            return input_check
-        case InputType.FLOAT:
-            try:
-                input_check = float(user_input)
-            except ValueError:
-                print("** Invalid input: enter a valid floating point number. **")
-                return ask_for_input(message, input_type, optional)
-            return input_check
-        case InputType.DATE:
-            # Check if invalid date
-            try:
-                input_check = dt.date.strptime(user_input, "%d-%m-%Y")
-            except ValueError:
-                print("** Invalid input: enter a valid date (DD-MM-YYYY). **")
-                return ask_for_input(message, input_type, optional)
-            return input_check
-        case InputType.FILE_PATH:
-            if os.path.exists(user_input):
-                return user_input
-            else:
-                print("** Invalid input: choosen file path does not exist. **")
-                return ask_for_input(message, input_type, optional)
-        case _:
-            print("Invalid input type.")
-            return
+        match input_type:
+            case InputType.STRING:
+                if user_input:
+                    return user_input
+                else:
+                    print("** Invalid input: an input is required. **")
+            case InputType.INTEGER:
+                try:
+                    input_check = int(user_input)
+                except ValueError:
+                    print("** Invalid input: enter a valid integer. **")
+                    continue
+                return input_check
+            case InputType.FLOAT:
+                try:
+                    input_check = float(user_input)
+                except ValueError:
+                    print("** Invalid input: enter a valid floating point number. **")
+                    continue
+                return input_check
+            case InputType.DATE:
+                # Check if invalid date
+                try:
+                    input_check = dt.date.strptime(user_input, "%d-%m-%Y")
+                except ValueError:
+                    print("** Invalid input: enter a valid date (DD-MM-YYYY). **")
+                    continue
+                return input_check
+            case InputType.FILE_PATH:
+                if os.path.isfile(user_input):
+                    return user_input
+                else:
+                    print("** Invalid input: choosen file path does not exist. **")
+                    continue
+            case _:
+                print("Invalid input type.")
+                return
 
 def search_and_select_purchase(archive: PurchaseArchive) -> list[Purchase]:
     """Prompts the user to search for each field of data in a purchase, and returns all found purchases as an array."""
@@ -274,12 +272,13 @@ def display_home_menu():
         print("3. Delete an existing purchase")
         print("4. Load a different archive")
         print("5. Open purchase information")
-        print("6. Settings")
-        print("7. Exit")
+        print("6. Create a new archive")
+        print("7. Settings")
+        print("8. Exit")
 
         user_input = ask_for_input("Enter your selection: ", InputType.INTEGER, False)
 
-        if user_input == 7 or "7":
+        if user_input == 8:
             break
 
         manage_home_input(user_input)
@@ -309,7 +308,8 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
 def confirm_purchase(purchase: Purchase, action: str) -> bool:
     print("Please confirm the purchase below.\n")
     price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
-    print(f"{purchase.name:<25} {purchase.brand:<15} ${price_display:<10} {purchase.purchase_date:<12}")
+
+    print(f"{purchase.name:<25} {purchase.brand:<15} {price_display:<10} {purchase.purchase_date:<12}")
 
     user_input = ask_for_input(f"\nType \"yes\" to confirm, or anything else to cancel {action}: ", InputType.STRING, True)
 
@@ -382,7 +382,6 @@ def manage_home_input(user_input):
         case "4":
             # -- Load a different archive --
             user_input = ask_for_input("Please enter the file path of the archive: ", InputType.FILE_PATH, False)
-            ARCHIVE.purchases = []
             ARCHIVE.set_file_path(str(user_input))
             ARCHIVE.load_purchases()
         case "5":
@@ -406,6 +405,22 @@ def manage_home_input(user_input):
             else:
                 print("Too many purchases matched. Please try again with a stricter match.")
         case "6":
+            # -- Create a new archive --
+            file_path = ask_for_input("Enter a file path to create a new archive: ", InputType.STRING, False)
+            archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
+
+            default_archive = {
+                "metadata": {
+                    "archive_name": archive_name,
+                    "next_id": 1
+                },
+                "purchases": []
+            }
+
+            with open(f"{file_path}", "x") as file:
+                json.dump(default_archive, file, indent=4)
+
+        case "7":
             # -- Settings --
             print("\n1. Change default file path")
             print("2. View version information")
@@ -429,7 +444,7 @@ def manage_home_input(user_input):
                     # View version information
                     print("\nPersonal Purchase Archive (prerelease) by BingleyPro")
                     wait_before_continue()
-        case "7":
+        case "8":
             # Exit
             sys.exit()
         case _:
@@ -438,13 +453,13 @@ def manage_home_input(user_input):
 # -------------
 ARCHIVE = PurchaseArchive()
 
-if os.path.exists("settings.json"):
+if os.path.isfile("settings.json"):
     # Check settings.json for default file. If exists, load it. Otherwise, prompt user for archive.
     with open("settings.json", "r") as file:
         data = json.load(file)
         file_path = data["default_file_path"]
 
-        if os.path.exists(file_path):
+        if os.path.isfile(file_path):
             ARCHIVE.set_file_path(file_path)
             ARCHIVE.load_purchases()
         else:
