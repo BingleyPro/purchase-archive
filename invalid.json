@@ -1,0 +1,64 @@
+{
+    "metadata": {
+        "archive_name": "Personal Archive",
+        "next_id": 4
+    },
+    "backup_file_path": "",
+    "purchases": [
+        {
+            "chicken": 1,
+            "veg": "Keyboard",
+            "purchase_date": "01-10-2026",
+            "rice": "Keychron",
+            "category": "Computer",
+            "tags": [
+                "keyboard, accessory, important, refunded"
+            ],
+            "price": 394.99,
+            "notes": [
+                {
+                    "id": 1,
+                    "text": "This is a note.",
+                    "creation_date": "03-10-2026"
+                },
+                {
+                    "id": 2,
+                    "text": "Serial Number: 6X7EY9WI2LS0P",
+                    "creation_date": "01-10-2026"
+                },
+                {
+                    "id": 3,
+                    "text": "Refunded purchase due to manufacturer damage. See attachments.",
+                    "creation_date": "06-10-2026",
+                    "linked_files": [
+                        "2", "3"
+                    ]
+                }
+            ],
+            "files": [
+                {
+                    "id": 1,
+                    "name": "Receipt",
+                    "type": "receipt",
+                    "format": "pdf",
+                    "file_path": "/files/receipts/keyboard.pdf"
+                },
+                {
+                    "id": 2,
+                    "name": "Damages",
+                    "type": "image",
+                    "format": "png",
+                    "file_path": "/files/images/keyboard_damage"
+                },
+                {
+                    "id": 3,
+                    "name": "Refund chat with support",
+                    "description": "Chat on Keychron.com on 05-10-2026 about refund.",
+                    "type": "support_chat",
+                    "format": "pdf",
+                    "file_path": "/files/other/keyboard_support_refund.pdf"
+                }
+            ]
+        }
+    ]
+}

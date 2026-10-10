@@ -30,26 +30,44 @@ class PurchaseArchive:
         self.file_path = file_path
         return
 
-    def load_purchases(self):
+    def get_next_id(self) -> int:
+        purchase_id = self.next_id
+        self.next_id += 1
+        return purchase_id
+
+    def load_purchases(self) -> bool:
+        if not os.path.isfile(self.file_path):
+            print(f"Error: {self.file_path} is invalid, archive file may have been moved.")
+            return False
+        
         with open(self.file_path, mode='r', newline='') as file:
-            data = json.load(file)
+            try:
+                data = json.load(file)
+            except json.JSONDecodeError:
+                print(f"The file {self.file_path} is not in JSON format.")
+                return False
 
         loaded_purchases = []
+        try:
+            # TODO: Maybe use .get()?
+            for i in data.get("purchases", []):
+                id = i['id']
+                name = i['name']
+                date = dt.date.strptime(i['purchase_date'], "%d-%m-%Y")
+                brand = i['brand']
+                category = i['category']
+                price = i['price']
+                if price is not None:
+                    price = float(price)
+                notes = i['notes']
+                tags = i['tags']
+                files = i['files']
 
-        for i in data["purchases"]:
-            id = i['id']
-            name = i['name']
-            date = dt.date.strptime(i['purchase_date'], "%d-%m-%Y")
-            brand = i['brand']
-            category = i['category']
-            price = i['price']
-            if price is not None:
-                price = float(price)
-            notes = i['notes']
-            tags = i['tags']
-            files = i['files']
-
-            loaded_purchases.append(Purchase(id=id, name=name, purchase_date=date, category=category, brand=brand, price=price, notes=notes, tags=tags, files=files))
+                loaded_purchases.append(Purchase(id=id, name=name, purchase_date=date, category=category, brand=brand, price=price, notes=notes, tags=tags, files=files))
+        except KeyError:
+            print("There is an error in the JSON formatting, and purchases could not be loaded.")
+            loaded_purchases = []
+            return False
 
         self.purchases = loaded_purchases
 
@@ -60,20 +78,24 @@ class PurchaseArchive:
             self.next_id = max(int(stored_id), minimum_id)
         else:
             self.next_id = minimum_id
-        return
+        return True
 
-    def get_next_id(self) -> int:
-        purchase_id = self.next_id
-        self.next_id += 1
-        return purchase_id
-
-    def save_to_file(self, increment_id: bool):
+    def save_to_file(self):
         purchases = []
+
         for purchase in self.purchases:
             purchases.append(purchase._to_dict())
 
-        with open(self.file_path, mode='r') as file:
-            old_data = json.load(file)
+        if not os.path.isfile(self.file_path):
+            print(f"Error: {self.file_path} is invalid, archive file may have been moved.")
+            return False
+        
+        with open(self.file_path, mode='r', newline='') as file:
+            try:
+                old_data = json.load(file)
+            except json.JSONDecodeError:
+                print(f"The file {self.file_path} is not in JSON format.")
+                return False
 
         new_data = {
             "metadata": {
@@ -90,14 +112,13 @@ class PurchaseArchive:
 
     def add_purchase(self, purchase: Purchase, save: bool):
         self.purchases.append(purchase)
-        if save:
-            self.save_to_file(True)
+        self.save_to_file()
         return
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
             self.purchases[self.purchases.index(old_purchase)] = new_purchase
-            self.save_to_file(False)
+            self.save_to_file()
         except ValueError:
             return False
         return True
@@ -105,12 +126,12 @@ class PurchaseArchive:
     def delete_purchase(self, purchase: Purchase) -> bool:
         try:
             self.purchases.remove(purchase)
-            self.save_to_file(False)
+            self.save_to_file()
         except ValueError:
             return False
         return True
 
-    def find_purchase(self, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: str|None = None):
+    def find_purchase(self, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: str|None = None, tags: str|None = None):
         if name:
             name = name.lower()
         if category:
@@ -134,6 +155,7 @@ class PurchaseArchive:
                 and (brand is None or (purchase.brand is not None and brand in purchase.brand.lower()))
                 and (price is None or purchase.price == price)
                 and matches_notes(purchase, notes)
+                and matches_tags(purchase, tags)
             ):
                 results.append(purchase)
 
@@ -185,7 +207,15 @@ def matches_notes(purchase: Purchase, search_text: str|None) -> bool:
     for note in (purchase.notes or []):
         if search_text.lower() in note.get("text", "").lower():
             return True
+    return False
 
+def matches_tags(purchase: Purchase, search_text: str|None) -> bool:
+    if search_text is None:
+        return True
+
+    for tag in (purchase.tags or []):
+        if search_text.lower() in tag.lower():
+            return True
     return False
 
 def ask_for_input(message: str, input_type: InputType, optional: bool):
