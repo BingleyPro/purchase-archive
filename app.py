@@ -6,8 +6,6 @@ Copyright: 2026
 """
 
 from __future__ import annotations
-
-#from flask import Flask, render_template, request
 import datetime as dt
 import json
 from enum import Enum
@@ -20,8 +18,7 @@ class InputType(Enum):
     INTEGER = 3
     DATE = 4
     FILE_PATH = 5
-
-#app = Flask(__name__)
+    FILE_PATH_NOT_EXIST = 6
 
 class PurchaseArchive:
     def __init__(self):
@@ -56,7 +53,7 @@ class PurchaseArchive:
 
         self.purchases = loaded_purchases
 
-        stored_id = data.get("metadata", {}).get("next_id", "")
+        stored_id = data.get("metadata", {}).get("next_id", None)
         minimum_id = max((purchase.id for purchase in loaded_purchases), default=0) + 1
 
         if stored_id is not None:
@@ -233,6 +230,9 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
                 else:
                     print("** Invalid input: choosen file path does not exist. **")
                     continue
+            case InputType.FILE_PATH_NOT_EXIST:
+                # TODO: Tesst if could be valid path?
+                return user_input
             case _:
                 print("Invalid input type.")
                 return
@@ -250,7 +250,7 @@ def search_and_select_purchase(archive: PurchaseArchive) -> list[Purchase]:
 
 def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase) -> bool:
     """Prompts the user to edit each field of data in a purchase, edits the purchase, and returns the success value."""
-    #print("For any input below, you can type %clear% to clear the original.")
+    print("For any input below, you can type %clear% to clear the original.")
     new_name = ask_for_input("Please enter the product name (if you want to edit it): ", InputType.STRING, True) or current_purchase.name
     new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True) or current_purchase.purchase_date
     new_brand = ask_for_input("Please enter the product's brand (or leave empty) (if you want to edit it): ", InputType.STRING, True) or current_purchase.brand
@@ -322,6 +322,19 @@ def wait_before_continue():
 def load_purchase_information(purchase: Purchase):
     print("Work in progress!")
     # TODO: load purchase information
+    return
+
+def create_archive(file_path, archive_name):
+    default_archive = {
+        "metadata": {
+            "archive_name": archive_name,
+            "next_id": 1
+        },
+        "purchases": []
+    }
+
+    with open(f"{file_path}", "x") as file:
+        json.dump(default_archive, file, indent=4)
     return
 
 def manage_home_input(user_input):
@@ -409,16 +422,7 @@ def manage_home_input(user_input):
             file_path = ask_for_input("Enter a file path to create a new archive: ", InputType.STRING, False)
             archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
 
-            default_archive = {
-                "metadata": {
-                    "archive_name": archive_name,
-                    "next_id": 1
-                },
-                "purchases": []
-            }
-
-            with open(f"{file_path}", "x") as file:
-                json.dump(default_archive, file, indent=4)
+            create_archive(file_path, archive_name)
 
         case "7":
             # -- Settings --
@@ -463,12 +467,25 @@ if os.path.isfile("settings.json"):
             ARCHIVE.set_file_path(file_path)
             ARCHIVE.load_purchases()
         else:
-            user_input = ask_for_input("Please enter the file path of the archive to open: ", InputType.FILE_PATH, False)
+            user_input = ask_for_input("Please enter the file path of the archive to open (will be created if it doesn't exist): ", InputType.FILE_PATH_NOT_EXIST, False)
+            if not os.path.isfile(str(user_input)):
+                file_path = ask_for_input("Enter a file path to create a new archive: ", InputType.STRING, False)
+                archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
+    
+                create_archive(file_path, archive_name)
+
             ARCHIVE.set_file_path(str(user_input))
             ARCHIVE.load_purchases()
 else:
     # Create settings.json
-    user_input = ask_for_input("Please enter the file path of the archive to open (will open by default): ", InputType.FILE_PATH, False)
+    user_input = ask_for_input("Please enter the file path of the archive to open (will open by default, will be created if it doesn't exist): ", InputType.FILE_PATH_NOT_EXIST, False)
+
+    if not os.path.isfile(str(user_input)):
+        file_path = ask_for_input("Enter a file path to create a new archive: ", InputType.STRING, False)
+        archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
+
+        create_archive(file_path, archive_name)
+
     ARCHIVE.set_file_path(str(user_input))
     ARCHIVE.load_purchases()
 
@@ -479,24 +496,3 @@ else:
         json.dump(data, file)
 
 display_home_menu()
-
-# Flask code
-"""
-@app.route("/")
-def home():
-    return render_template("index.html", purchases=purchases)
-
-@app.route("/add", methods=["GET", "POST"])
-def add_purchase():
-    if request.method == "POST":
-        name = request.form["name"]
-        brand = request.form["brand"]
-        category = request.form["category"]
-        price = request.form["price"]
-        purchase_date = request.form["purchase_date"]
-
-    return render_template("add.html")
-"""
-
-#if __name__ == "__main__":
- #   app.run()
