@@ -70,8 +70,6 @@ class PurchaseArchive:
             loaded_purchases = []
             return False
 
-        self.purchases = loaded_purchases
-
         stored_id = data.get("metadata", {}).get("next_id", None)
         minimum_id = max((purchase.id for purchase in loaded_purchases), default=0) + 1
 
@@ -79,6 +77,8 @@ class PurchaseArchive:
             self.next_id = max(int(stored_id), minimum_id)
         else:
             self.next_id = minimum_id
+
+        self.purchases = loaded_purchases
         return True
 
     def save_to_file(self) -> bool:
@@ -125,10 +125,9 @@ class PurchaseArchive:
     def delete_purchase(self, purchase: Purchase) -> bool:
         try:
             self.purchases.remove(purchase)
-            self.save_to_file()
         except ValueError:
             return False
-        return True
+        return self.save_to_file()
 
     def find_purchase(self, purchase_id: int|None = None, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: str|None = None, tags: str|None = None):
         if name:
@@ -292,12 +291,10 @@ def search_and_select_purchase(archive: PurchaseArchive) -> list[Purchase]:
 def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase) -> bool:
     """Prompts the user to edit each field of data in a purchase, edits the purchase, and returns the success value."""
 
-    print("For all inputs below, you can type %clear% to clear the original.")
+    print("For all inputs below (except name and date), you can type %clear% to clear the original.")
     new_name = ask_for_input("Please enter the product name (if you want to edit it): ", InputType.STRING, True) or current_purchase.name
-    if new_name == "%clear%": new_name = ""
 
-    new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True, ["%clear%"]) or current_purchase.purchase_date
-    if new_date == "%clear%": new_date = None
+    new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True) or current_purchase.purchase_date
 
     new_brand = ask_for_input("Please enter the product's brand (or leave empty) (if you want to edit it): ", InputType.STRING, True, ["%clear%"]) or current_purchase.brand
     if new_brand == "%clear%": new_brand = ""
@@ -440,9 +437,10 @@ def manage_home_input(user_input):
             category = ask_for_input("Please enter the product's category (or leave empty): ", InputType.STRING, True)
             price = ask_for_input("Please enter the product's price (or leave empty): ", InputType.FLOAT, True)
             tags = ask_for_input("Please enter the product's tags, separated by commas (or leave empty): ", InputType.STRING, True)
+
+            tags_list = []
             if tags:
                 tags = str(tags).split(",")
-                tags_list = []
                 for tag in tags:
                     tags_list.append(tag.strip())
 
@@ -492,8 +490,8 @@ def manage_home_input(user_input):
         case "4":
             # -- Load a different archive --
             user_input = ask_for_input("Please enter the file path of the archive: ", InputType.FILE_PATH, False)
-            ARCHIVE.set_file_path(str(user_input))
-            ARCHIVE.load_purchases()
+            if ARCHIVE.load_purchases():
+                ARCHIVE.set_file_path(str(user_input))
         case "5":
             # -- Open purchase information --
             purchases = search_and_select_purchase(archive=ARCHIVE)
