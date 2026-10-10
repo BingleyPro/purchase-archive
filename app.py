@@ -131,7 +131,7 @@ class PurchaseArchive:
             return False
         return True
 
-    def find_purchase(self, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: str|None = None, tags: str|None = None):
+    def find_purchase(self, purchase_id: int|None = None, name: str|None = None, purchase_date: dt.date|None = None, category: str|None = None, brand: str|None = None, price: float|None = None, notes: str|None = None, tags: str|None = None):
         if name:
             name = name.lower()
         if category:
@@ -149,7 +149,8 @@ class PurchaseArchive:
 
         for purchase in self.purchases:
             if (
-                (name is None or name in purchase.name.lower())
+                (purchase_id is None or purchase_id in purchase.id)
+                and (name is None or name in purchase.name.lower())
                 and (purchase_date is None or purchase.purchase_date == purchase_date)
                 and (category is None or (purchase.category is not None and category in purchase.category.lower()))
                 and (brand is None or (purchase.brand is not None and brand in purchase.brand.lower()))
@@ -162,7 +163,7 @@ class PurchaseArchive:
         return results
 
     def print_purchases(self):
-        # Print table of purchases
+        # TODO: Custom columns?
         print(f"{'Name':<25} {'Brand':<15} {'Price':<10} {'Date':<12}")
         print("-" * 65)
 
@@ -218,13 +219,16 @@ def matches_tags(purchase: Purchase, search_text: str|None) -> bool:
             return True
     return False
 
-def ask_for_input(message: str, input_type: InputType, optional: bool):
+def ask_for_input(message: str, input_type: InputType, optional: bool, also_except: list[str] = []):
     """Prompts the user for input with a given message. Handles validation based on the choosen input type, and enforces input unless optional."""
     while True:
         user_input = input(message)
 
         if optional and user_input == "":
             return None
+
+        if user_input in also_except:
+            return user_input
 
         match input_type:
             case InputType.STRING:
@@ -247,7 +251,6 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
                     continue
                 return input_check
             case InputType.DATE:
-                # Check if invalid date
                 try:
                     input_check = dt.date.strptime(user_input, "%d-%m-%Y")
                 except ValueError:
@@ -261,7 +264,7 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
                     print("** Invalid input: choosen file path does not exist. **")
                     continue
             case InputType.FILE_PATH_NOT_EXIST:
-                # TODO: Tesst if could be valid path?
+                # TODO: Test if could be valid path?
                 return user_input
             case _:
                 print("Invalid input type.")
@@ -269,23 +272,35 @@ def ask_for_input(message: str, input_type: InputType, optional: bool):
 
 def search_and_select_purchase(archive: PurchaseArchive) -> list[Purchase]:
     """Prompts the user to search for each field of data in a purchase, and returns all found purchases as an array."""
+
     name = ask_for_input("Please enter the product name to search for (if required): ", InputType.STRING, True)
     date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) to search for (if required): ", InputType.DATE, True)
     brand = ask_for_input("Please enter the product's brand (or leave empty) to search for (if required): ", InputType.STRING, True)
     category = ask_for_input("Please enter the product's category (or leave empty) to search for (if required): ", InputType.STRING, True)
     price = ask_for_input("Please enter the product's price (or leave empty) to search for (if required): ", InputType.FLOAT, True)
+    tag = ask_for_input("Please enter the product's tag (or leave empty) to search for (if required): ", InputType.STRING, True)
+    note = ask_for_input("Please enter the product's note (or leave empty) to search for (if required): ", InputType.STRING, True)
+    purchase_id = ask_for_input("Please enter the product's id (or leave empty) to search for (if required): ", InputType.INTEGER, True)
 
-    purchases = archive.find_purchase(name=name, purchase_date=date, brand=brand, category=category, price=price) # type: ignore
+    purchases = archive.find_purchase(purchase_id=purchase_id, name=name, purchase_date=date, brand=brand, category=category, price=price, notes=note, tags=tag) # type: ignore
     return purchases
 
 def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase) -> bool:
     """Prompts the user to edit each field of data in a purchase, edits the purchase, and returns the success value."""
-    print("For any input below, you can type %clear% to clear the original.")
+
+    print("For (most) inputs below, you can type %clear% to clear the original.")
     new_name = ask_for_input("Please enter the product name (if you want to edit it): ", InputType.STRING, True) or current_purchase.name
-    new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True) or current_purchase.purchase_date
-    new_brand = ask_for_input("Please enter the product's brand (or leave empty) (if you want to edit it): ", InputType.STRING, True) or current_purchase.brand
-    new_category = ask_for_input("Please enter the product's category (or leave empty) (if you want to edit it): ", InputType.STRING, True) or current_purchase.category
-    new_price = ask_for_input("Please enter the product's price (or leave empty) (if you want to edit it): ", InputType.FLOAT, True)
+    
+    new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True, ["%clear"]) or current_purchase.purchase_date
+    if new_date is "%clear": new_date = ""
+
+    new_brand = ask_for_input("Please enter the product's brand (or leave empty) (if you want to edit it): ", InputType.STRING, True, ["%clear"]) or current_purchase.brand
+    if new_brand is "%clear": new_brand = ""
+
+    new_category = ask_for_input("Please enter the product's category (or leave empty) (if you want to edit it): ", InputType.STRING, True, ["%clear"]) or current_purchase.category
+    if new_category is "%clear": new_category = ""
+
+    new_price = ask_for_input("Please enter the product's price (or leave empty) (if you want to edit it): ", InputType.FLOAT, True, ["%clear"])
     if new_price is None:
         new_price = current_purchase.price
 

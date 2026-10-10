@@ -17,10 +17,10 @@ This project currently uses a terminal based interface, along with JSON for stor
 
 ## Current Issues / Missing Important Features
 
-- Notes search does now work, but there is no user option
-- There is no way to clear an existing field when editing a purchase
-- Better file handling for invalid or corrupted files
-- No way to create an archive
+- There is no way to edit notes, files or tags
+- There is a five search result limit - pages would fix this
+- No sorting
+- No automatic backups
 
 ## Planned Features
 
