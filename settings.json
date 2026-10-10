@@ -1,5 +1,5 @@
 {
-    "default_file_path": "database.json",
+    "default_file_path": "dev_data/database.json",
     "quick_access_archives": [
         "other_database.json"
     ],

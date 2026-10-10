@@ -3,3 +3,10 @@ data/
 
 # Virtual environment
 .venv/
+
+# Cache
+__pycache__/
+.pytest_cache/
+
+# IDE files
+.DS_Store

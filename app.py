@@ -160,17 +160,18 @@ class PurchaseArchive:
 
         return results
 
-    def print_purchases(self):
+    def print_purchases(self, page_num: int = 1):
+        page_size = 10
+        start = (page_num - 1) + page_size
+        end = start + page_size
+
+        display_purchases = self.purchases[start:end]
+
         # TODO: Custom columns?
         print(f"{'Name':<25} {'Brand':<15} {'Price':<10} {'Date':<12}")
         print("-" * 65)
 
-        #num_of_pages = math.ceil(len(self.purchases) / 10)
-        #page_num = 1
-    
-        #display_purchase_page(self.purchases[0:10], page_num, num_of_pages)
-
-        for purchase in self.purchases:
+        for purchase in display_purchases:
             brand = purchase.brand or "-"
             price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
             date = str(purchase.purchase_date)
@@ -312,10 +313,19 @@ def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase
     return archive.edit_purchase(current_purchase, Purchase(id=current_purchase.id, name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes, tags=current_purchase.tags, files=current_purchase.files)) # type: ignore
 
 def display_home_menu():
-    while True:
-        print("-----Personal Purchase Archive -----\n")
+    page_num = 1
+    page_size = 10
 
-        ARCHIVE.print_purchases()
+    while True:
+        total_pages = max(1, math.ceil(len(ARCHIVE.purchases) / page_size))
+        page_num = min(page_num, total_pages)
+
+        print("\n-----Personal Purchase Archive -----\n")
+
+        ARCHIVE.print_purchases(page_num)
+
+        print(f"\nPage {page_num} of {total_pages}")
+        print("< Prev | Next >")
 
         print("\n1. Add a new purchase")
         print("2. Edit an existing purchase")
@@ -326,12 +336,19 @@ def display_home_menu():
         print("7. Settings")
         print("8. Exit")
 
-        user_input = ask_for_input("Enter your selection: ", InputType.INTEGER, False)
+        user_input = ask_for_input("Enter your selection: ", InputType.STRING, False)
 
-        if user_input == 8:
+        if user_input == ">":
+            page_num = min(page_num + 1, total_pages)
+
+        elif user_input == "<":
+            page_num = max(page_num - 1, 1)
+
+        elif user_input == 8:
             break
 
-        manage_home_input(user_input)
+        else:
+            manage_home_input(user_input)
 
 def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
     print("Multiple purchases found, please review below.\n")
@@ -477,7 +494,7 @@ def manage_home_input(user_input):
                     ARCHIVE.delete_purchase(purchases[0])
                 else:
                     print("Deleting canceled.")
-            elif len(purchases) < 6:
+            else:
                 current_purchase = choose_purchase(purchases)
                 if current_purchase:
                     if confirm_purchase(current_purchase, "deleting"):
@@ -485,8 +502,6 @@ def manage_home_input(user_input):
                         print("Purchase deleted.")
                     else:
                         print("Deleting canceled.")
-            else:
-                print("Too many purchases matched. Please try again with a stricter match.")
         case "4":
             # -- Load a different archive --
             user_input = ask_for_input("Please enter the file path of the archive: ", InputType.FILE_PATH, False)
@@ -503,15 +518,13 @@ def manage_home_input(user_input):
                     load_purchase_information(purchases[0])
                 else:
                     print("Selecting canceled.")
-            elif len(purchases) < 6:
+            else:
                 current_purchase = choose_purchase(purchases)
                 if current_purchase:
                     if confirm_purchase(current_purchase, "selecting"):
                         load_purchase_information(current_purchase)
                     else:
                         print("Selecting canceled.")
-            else:
-                print("Too many purchases matched. Please try again with a stricter match.")
         case "6":
             # -- Create a new archive --
             file_path = ask_for_input("Enter a file path to create a new archive: ", InputType.STRING, False)
@@ -550,42 +563,48 @@ def manage_home_input(user_input):
             print("** Invalid input, try again.**")
 
 # -------------
-ARCHIVE = PurchaseArchive()
+def main():
+    global ARCHIVE
 
-if os.path.isfile("settings.json"):
-    # Check settings.json for default file. If exists, load it. Otherwise, prompt user for archive.
-    with open("settings.json", "r") as file:
-        data = json.load(file)
-        file_path = data["default_file_path"]
+    ARCHIVE = PurchaseArchive()
 
-        if os.path.isfile(file_path):
-            ARCHIVE.set_file_path(file_path)
-            ARCHIVE.load_purchases()
-        else:
-            user_input = ask_for_input("Please enter the file path of the archive to open (will be created if it doesn't exist): ", InputType.FILE_PATH_NOT_EXIST, False)
-            if not os.path.isfile(str(user_input)):
-                archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
-    
-                create_archive(user_input, archive_name)
+    if os.path.isfile("settings.json"):
+        # Check settings.json for default file. If exists, load it. Otherwise, prompt user for archive.
+        with open("settings.json", "r") as file:
+            data = json.load(file)
+            file_path = data["default_file_path"]
 
-            ARCHIVE.set_file_path(str(user_input))
-            ARCHIVE.load_purchases()
-else:
-    # Create settings.json
-    user_input = ask_for_input("Please enter the file path of the archive to open (will open by default, will be created if it doesn't exist): ", InputType.FILE_PATH_NOT_EXIST, False)
+            if os.path.isfile(file_path):
+                ARCHIVE.set_file_path(file_path)
+                ARCHIVE.load_purchases()
+            else:
+                user_input = ask_for_input("Please enter the file path of the archive to open (will be created if it doesn't exist): ", InputType.FILE_PATH_NOT_EXIST, False)
+                if not os.path.isfile(str(user_input)):
+                    archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
+        
+                    create_archive(user_input, archive_name)
 
-    if not os.path.isfile(str(user_input)):
-        archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
+                ARCHIVE.set_file_path(str(user_input))
+                ARCHIVE.load_purchases()
+    else:
+        # Create settings.json
+        user_input = ask_for_input("Please enter the file path of the archive to open (will open by default, will be created if it doesn't exist): ", InputType.FILE_PATH_NOT_EXIST, False)
 
-        create_archive(user_input, archive_name)
+        if not os.path.isfile(str(user_input)):
+            archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
 
-    ARCHIVE.set_file_path(str(user_input))
-    ARCHIVE.load_purchases()
+            create_archive(user_input, archive_name)
 
-    with open("settings.json", "x") as file:
-        data = {
-            "default_file_path": user_input
-         }
-        json.dump(data, file)
+        ARCHIVE.set_file_path(str(user_input))
+        ARCHIVE.load_purchases()
 
-display_home_menu()
+        with open("settings.json", "x") as file:
+            data = {
+                "default_file_path": user_input
+            }
+            json.dump(data, file)
+
+    display_home_menu()
+
+if __name__ == "__main__":
+    main()
