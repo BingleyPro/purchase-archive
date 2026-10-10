@@ -11,6 +11,7 @@ import json
 from enum import Enum
 from typing_extensions import Literal
 import sys, os
+import math
 
 class InputType(Enum):
     STRING = 1
@@ -290,7 +291,7 @@ def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase
 
     print("For (most) inputs below, you can type %clear% to clear the original.")
     new_name = ask_for_input("Please enter the product name (if you want to edit it): ", InputType.STRING, True) or current_purchase.name
-    
+
     new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True, ["%clear"]) or current_purchase.purchase_date
     if new_date is "%clear": new_date = ""
 
@@ -303,6 +304,8 @@ def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase
     new_price = ask_for_input("Please enter the product's price (or leave empty) (if you want to edit it): ", InputType.FLOAT, True, ["%clear"])
     if new_price is None:
         new_price = current_purchase.price
+
+    # TODO: Edit tags, notes, files
 
     return archive.edit_purchase(current_purchase, Purchase(id=current_purchase.id, name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes, tags=current_purchase.tags, files=current_purchase.files)) # type: ignore
 
@@ -331,24 +334,65 @@ def display_home_menu():
 def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
     print("Multiple purchases found, please review below.\n")
 
-    for index, purchase in enumerate(purchases, start=1):
-        price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
-        print(f"{index}. {purchase.name:<25} {purchase.brand:<15} {price_display:<10} {purchase.purchase_date:<12}")
+    num_of_pages = math.ceil(len(purchases) / 10)
+    page_num = 1
 
-    user_input = ask_for_input("\nType the corresponding number to select a purchase, or anything else to cancel.", InputType.STRING, True)
+    display_purchase_page(purchases[0:9], page_num, num_of_pages)
 
-    if user_input is None:
-        return False
+    while True:
+        user_input = ask_for_input("\nType the corresponding number to select a purchase or change page, or anything else to cancel.", InputType.STRING, True)
 
-    try:
-        user_input = int(user_input) # type: ignore
-        if user_input > 0 and user_input < len(purchases) + 1: # type: ignore
-            current_purchase = purchases[user_input - 1] # type: ignore
-        else:
+        if user_input is None:
             return False
-    except ValueError:
-        return False
-    return current_purchase
+
+        if user_input is ">":
+            if page_num < num_of_pages:
+                page_num += 1
+            min_purchase = ((page_num - 1) * 10)
+            max_purchase = ((page_num * 10) - 1)
+
+            if max_purchase > len(purchases):
+                max_purchase = len(purchases)
+
+            display_purchase_page(purchases[min_purchase:max_purchase], page_num, num_of_pages)
+        elif user_input is "<":
+            if not page_num <= 2:
+                page_num -= 1
+            min_purchase = ((page_num - 1) * 10)
+            max_purchase = ((page_num * 10) - 1)
+
+            if max_purchase > len(purchases):
+                max_purchase = len(purchases)
+
+            display_purchase_page(purchases[((page_num - 1) * 10):((page_num * 10) - 1)], page_num, num_of_pages)
+        else:
+            try:
+                user_input = int(user_input) # type: ignore
+                if user_input > 0 and user_input < len(purchases) + 1: # type: ignore
+                    current_purchase = purchases[user_input - 1] # type: ignore
+                else:
+                    return False
+            except ValueError:
+                return False
+            return current_purchase
+
+def display_purchase_page(purchases: list[Purchase], current_page_num: int, total_pages: int):
+    for index, purchase in enumerate(purchases, start=1):
+            price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
+            print(f"{index}. {purchase.name:<25} {purchase.brand:<15} {price_display:<10} {purchase.purchase_date:<12}")
+
+    print(f"\nPage {current_page_num}")
+    if total_pages > current_page_num and current_page_num > 1: 
+        print("\">\" to page up, \"<\" to page down")
+    elif current_page_num == 1 and total_pages > current_page_num:
+        print("\">\" to page up")
+    elif total_pages == current_page_num and current_page_num > 1:
+        print("\"<\" to page down")
+    else:
+        pass
+
+    return
+        
 
 def confirm_purchase(purchase: Purchase, action: str) -> bool:
     print("Please confirm the purchase below.\n")

@@ -18,7 +18,6 @@ This project currently uses a terminal based interface, along with JSON for stor
 ## Current Issues / Missing Important Features
 
 - There is no way to edit notes, files or tags
-- There is a five search result limit - pages would fix this
 - No sorting
 - No automatic backups
 
