@@ -81,7 +81,7 @@ class PurchaseArchive:
             self.next_id = minimum_id
         return True
 
-    def save_to_file(self):
+    def save_to_file(self) -> bool:
         purchases = []
 
         for purchase in self.purchases:
@@ -109,20 +109,18 @@ class PurchaseArchive:
 
         with open(self.file_path, mode='w') as file:
             json.dump(new_data, file, indent=4)
-        return
+        return True
 
-    def add_purchase(self, purchase: Purchase, save: bool):
+    def add_purchase(self, purchase: Purchase):
         self.purchases.append(purchase)
-        self.save_to_file()
-        return
+        return self.save_to_file()
 
     def edit_purchase(self, old_purchase: Purchase, new_purchase: Purchase) -> bool:
         try:
             self.purchases[self.purchases.index(old_purchase)] = new_purchase
-            self.save_to_file()
         except ValueError:
             return False
-        return True
+        return self.save_to_file()
 
     def delete_purchase(self, purchase: Purchase) -> bool:
         try:
@@ -150,7 +148,7 @@ class PurchaseArchive:
 
         for purchase in self.purchases:
             if (
-                (purchase_id is None or purchase_id in purchase.id)
+                (purchase_id is None or purchase_id == purchase.id)
                 and (name is None or name in purchase.name.lower())
                 and (purchase_date is None or purchase.purchase_date == purchase_date)
                 and (category is None or (purchase.category is not None and category in purchase.category.lower()))
@@ -167,6 +165,11 @@ class PurchaseArchive:
         # TODO: Custom columns?
         print(f"{'Name':<25} {'Brand':<15} {'Price':<10} {'Date':<12}")
         print("-" * 65)
+
+        #num_of_pages = math.ceil(len(self.purchases) / 10)
+        #page_num = 1
+    
+        #display_purchase_page(self.purchases[0:10], page_num, num_of_pages)
 
         for purchase in self.purchases:
             brand = purchase.brand or "-"
@@ -291,20 +294,21 @@ def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase
 
     print("For all inputs below, you can type %clear% to clear the original.")
     new_name = ask_for_input("Please enter the product name (if you want to edit it): ", InputType.STRING, True) or current_purchase.name
-    if new_name is "%clear": new_name = ""
+    if new_name == "%clear%": new_name = ""
 
-    new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True, ["%clear"]) or current_purchase.purchase_date
-    if new_date is "%clear": new_date = ""
+    new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True, ["%clear%"]) or current_purchase.purchase_date
+    if new_date == "%clear%": new_date = None
 
-    new_brand = ask_for_input("Please enter the product's brand (or leave empty) (if you want to edit it): ", InputType.STRING, True, ["%clear"]) or current_purchase.brand
-    if new_brand is "%clear": new_brand = ""
+    new_brand = ask_for_input("Please enter the product's brand (or leave empty) (if you want to edit it): ", InputType.STRING, True, ["%clear%"]) or current_purchase.brand
+    if new_brand == "%clear%": new_brand = ""
 
-    new_category = ask_for_input("Please enter the product's category (or leave empty) (if you want to edit it): ", InputType.STRING, True, ["%clear"]) or current_purchase.category
-    if new_category is "%clear": new_category = ""
+    new_category = ask_for_input("Please enter the product's category (or leave empty) (if you want to edit it): ", InputType.STRING, True, ["%clear%"]) or current_purchase.category
+    if new_category == "%clear%": new_category = ""
 
-    new_price = ask_for_input("Please enter the product's price (or leave empty) (if you want to edit it): ", InputType.FLOAT, True, ["%clear"])
+    new_price = ask_for_input("Please enter the product's price (or leave empty) (if you want to edit it): ", InputType.FLOAT, True, ["%clear%"])
     if new_price is None:
         new_price = current_purchase.price
+    if new_price == "%clear%": new_price = None
 
     # TODO: Edit tags, notes, files
 
@@ -346,7 +350,7 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
         if user_input is None:
             return False
 
-        if user_input is ">":
+        if user_input == ">":
             if page_num < num_of_pages:
                 page_num += 1
             min_purchase = ((page_num - 1) * 10)
@@ -356,7 +360,7 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
                 max_purchase = len(purchases)
 
             display_purchase_page(purchases[min_purchase:max_purchase], page_num, num_of_pages)
-        elif user_input is "<":
+        elif user_input == "<":
             if not page_num <= 1:
                 page_num -= 1
             min_purchase = ((page_num - 1) * 10)
@@ -365,7 +369,7 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
             if max_purchase > len(purchases):
                 max_purchase = len(purchases)
 
-            display_purchase_page(purchases[((page_num - 1) * 10):((page_num * 10) - 1)], page_num, num_of_pages)
+            display_purchase_page(purchases[min_purchase:max_purchase], page_num, num_of_pages)
         else:
             try:
                 user_input = int(user_input) # type: ignore
@@ -435,11 +439,15 @@ def manage_home_input(user_input):
             brand = ask_for_input("Please enter the product's brand (or leave empty): ", InputType.STRING, True)
             category = ask_for_input("Please enter the product's category (or leave empty): ", InputType.STRING, True)
             price = ask_for_input("Please enter the product's price (or leave empty): ", InputType.FLOAT, True)
-            tags = str(ask_for_input("Please enter the product's tags, separated by commas (or leave empty): ", InputType.STRING, True))
-            #tags.split(",")
+            tags = ask_for_input("Please enter the product's tags, separated by commas (or leave empty): ", InputType.STRING, True)
+            if tags:
+                tags = str(tags).split(",")
+                tags_list = []
+                for tag in tags:
+                    tags_list.append(tag.strip())
 
             purchase_id = ARCHIVE.get_next_id()
-            ARCHIVE.add_purchase(Purchase(id=purchase_id, name=name, purchase_date=date, brand=brand, category=category, price=price), True) # type: ignore
+            ARCHIVE.add_purchase(Purchase(id=purchase_id, name=name, purchase_date=date, brand=brand, category=category, price=price, tags=tags_list)) # type: ignore
         case "2":
             # -- Edit an existing purchase --
             purchases = search_and_select_purchase(archive=ARCHIVE)
@@ -523,7 +531,7 @@ def manage_home_input(user_input):
 
             match str(user_input):
                 case "1":
-                    # Change default file path
+                    # -- Change default file path --
                     user_input = ask_for_input("Please enter the new default file path: ", InputType.FILE_PATH, False)
 
                     with open("settings.json", "r") as file:
@@ -534,7 +542,7 @@ def manage_home_input(user_input):
                     with open("settings.json", "w") as file:
                         json.dump(data, file, indent=4)
                 case "2":
-                    # View version information
+                    # -- View version information --
                     print("\nPersonal Purchase Archive (prerelease) by BingleyPro")
                     wait_before_continue()
         case "8":
@@ -558,10 +566,9 @@ if os.path.isfile("settings.json"):
         else:
             user_input = ask_for_input("Please enter the file path of the archive to open (will be created if it doesn't exist): ", InputType.FILE_PATH_NOT_EXIST, False)
             if not os.path.isfile(str(user_input)):
-                file_path = ask_for_input("Enter a file path to create a new archive: ", InputType.STRING, False)
                 archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
     
-                create_archive(file_path, archive_name)
+                create_archive(user_input, archive_name)
 
             ARCHIVE.set_file_path(str(user_input))
             ARCHIVE.load_purchases()
@@ -570,10 +577,9 @@ else:
     user_input = ask_for_input("Please enter the file path of the archive to open (will open by default, will be created if it doesn't exist): ", InputType.FILE_PATH_NOT_EXIST, False)
 
     if not os.path.isfile(str(user_input)):
-        file_path = ask_for_input("Enter a file path to create a new archive: ", InputType.STRING, False)
         archive_name = ask_for_input("Enter a name for the archive: ", InputType.STRING, False)
 
-        create_archive(file_path, archive_name)
+        create_archive(user_input, archive_name)
 
     ARCHIVE.set_file_path(str(user_input))
     ARCHIVE.load_purchases()
