@@ -289,8 +289,9 @@ def search_and_select_purchase(archive: PurchaseArchive) -> list[Purchase]:
 def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase) -> bool:
     """Prompts the user to edit each field of data in a purchase, edits the purchase, and returns the success value."""
 
-    print("For (most) inputs below, you can type %clear% to clear the original.")
+    print("For all inputs below, you can type %clear% to clear the original.")
     new_name = ask_for_input("Please enter the product name (if you want to edit it): ", InputType.STRING, True) or current_purchase.name
+    if new_name is "%clear": new_name = ""
 
     new_date = ask_for_input("Please enter the purchase date (DD-MM-YYYY) (if you want to edit it): ", InputType.DATE, True, ["%clear"]) or current_purchase.purchase_date
     if new_date is "%clear": new_date = ""
@@ -337,10 +338,10 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
     num_of_pages = math.ceil(len(purchases) / 10)
     page_num = 1
 
-    display_purchase_page(purchases[0:9], page_num, num_of_pages)
+    display_purchase_page(purchases[0:10], page_num, num_of_pages)
 
     while True:
-        user_input = ask_for_input("\nType the corresponding number to select a purchase or change page, or anything else to cancel.", InputType.STRING, True)
+        user_input = ask_for_input("\nType the corresponding number to select a purchase, change page (<, >), or anything else to cancel: ", InputType.STRING, True)
 
         if user_input is None:
             return False
@@ -349,17 +350,17 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
             if page_num < num_of_pages:
                 page_num += 1
             min_purchase = ((page_num - 1) * 10)
-            max_purchase = ((page_num * 10) - 1)
+            max_purchase = ((page_num * 10))
 
             if max_purchase > len(purchases):
                 max_purchase = len(purchases)
 
             display_purchase_page(purchases[min_purchase:max_purchase], page_num, num_of_pages)
         elif user_input is "<":
-            if not page_num <= 2:
+            if not page_num <= 1:
                 page_num -= 1
             min_purchase = ((page_num - 1) * 10)
-            max_purchase = ((page_num * 10) - 1)
+            max_purchase = ((page_num * 10))
 
             if max_purchase > len(purchases):
                 max_purchase = len(purchases)
@@ -377,7 +378,7 @@ def choose_purchase(purchases: list[Purchase]) -> Purchase|Literal[False]:
             return current_purchase
 
 def display_purchase_page(purchases: list[Purchase], current_page_num: int, total_pages: int):
-    for index, purchase in enumerate(purchases, start=1):
+    for index, purchase in enumerate(purchases, start=((current_page_num - 1) * 10) + 1):
             price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
             print(f"{index}. {purchase.name:<25} {purchase.brand:<15} {price_display:<10} {purchase.purchase_date:<12}")
 
@@ -390,10 +391,8 @@ def display_purchase_page(purchases: list[Purchase], current_page_num: int, tota
         print("\"<\" to page down")
     else:
         pass
-
     return
         
-
 def confirm_purchase(purchase: Purchase, action: str) -> bool:
     print("Please confirm the purchase below.\n")
     price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
@@ -422,6 +421,7 @@ def create_archive(file_path, archive_name):
         "purchases": []
     }
 
+    # TODO: doesnt create folders
     with open(f"{file_path}", "x") as file:
         json.dump(default_archive, file, indent=4)
     return
@@ -435,6 +435,8 @@ def manage_home_input(user_input):
             brand = ask_for_input("Please enter the product's brand (or leave empty): ", InputType.STRING, True)
             category = ask_for_input("Please enter the product's category (or leave empty): ", InputType.STRING, True)
             price = ask_for_input("Please enter the product's price (or leave empty): ", InputType.FLOAT, True)
+            tags = str(ask_for_input("Please enter the product's tags, separated by commas (or leave empty): ", InputType.STRING, True))
+            #tags.split(",")
 
             purchase_id = ARCHIVE.get_next_id()
             ARCHIVE.add_purchase(Purchase(id=purchase_id, name=name, purchase_date=date, brand=brand, category=category, price=price), True) # type: ignore
@@ -449,7 +451,7 @@ def manage_home_input(user_input):
                     prompt_and_edit_purchase(ARCHIVE, purchases[0])
                 else:
                     print("Editing canceled.")
-            elif len(purchases) < 6:
+            else:
                 current_purchase = choose_purchase(purchases)
 
                 if current_purchase:
@@ -458,8 +460,6 @@ def manage_home_input(user_input):
                         print("Purchase edited.")
                     else:
                         print("Editing canceled.")
-            else:
-                print("Too many purchases matched. Please try again with a stricter match.")
         case "3":
             # -- Delete an existing purchase --
             purchases = search_and_select_purchase(ARCHIVE)
