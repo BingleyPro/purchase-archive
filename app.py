@@ -471,7 +471,7 @@ def load_purchase_information(purchase: Purchase):
                     purchase.notes = []
                     note_id = 1
                 else:
-                    note_id = max(note.get("id", 0) for note in purchase.notes )
+                    note_id = max(note.get("id", 0) for note in purchase.notes) + 1
 
                 note_text = ask_for_input("Please enter the note: ", InputType.STRING, False)
                 creation_date = dt.date.today().strftime("%d-%m-%Y")
@@ -483,21 +483,49 @@ def load_purchase_information(purchase: Purchase):
                         "creation_date": creation_date
                     }
                 )
-                pass
             case 3:
                 # -- Edit a note --
-                pass
+                if not purchase.notes:
+                    print("There are no notes.")
+                    continue
+
+                note_id = ask_for_input("Enter the note ID to edit: ", InputType.INTEGER, False)
+
+                note = next(
+                    (note for note in purchase.notes if note["id" == note_id]), None
+                )
+
+                if note is None:
+                    print("Note not found.")
+                    continue
+
+                note_text = ask_for_input("Please enter the note text to update: ", InputType.STRING, False)
+                note["text"] = note_text
             case 4:
                 # -- Delete a note --
-                pass
+                if not purchase.notes:
+                    print("There are no notes.")
+                    continue
+
+                note_id = ask_for_input("Enter the note ID to delete: ", InputType.INTEGER, False)
+
+                note = next(
+                    (note for note in purchase.notes if note["id" == note_id]), None
+                )
+
+                if note is None:
+                    print("Note not found.")
+                    continue
+
+                purchase.notes.remove(note)
             case 5:
-                # -- Attach a note --
+                # -- Attach a file --
                 pass
             case 6:
-                # -- Edit a note --
+                # -- Edit a file --
                 pass
             case 7:
-                # -- Remove a note --
+                # -- Remove a file --
                 pass
             case 8:
                 # -- Return to home --
