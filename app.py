@@ -329,10 +329,7 @@ def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase
                 current_purchase.tags.remove(tag)
             elif action == "%a":
                 current_purchase.tags.append(tag)
-
         new_tags = current_purchase.tags
-
-    # TODO: Edit notes, files
 
     return archive.edit_purchase(current_purchase, Purchase(id=current_purchase.id, name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes, tags=new_tags, files=current_purchase.files)) # type: ignore
 
@@ -450,6 +447,64 @@ def wait_before_continue():
     return
 
 def load_purchase_information(purchase: Purchase):
+
+    while True:
+        print_purchase_information(purchase)
+        print("1. Edit purchase information")
+        print("2. Create a note")
+        print("3. Edit a note")
+        print("4. Delete a note")
+        print("5. Attach a file")
+        print("6. Edit a file")
+        print("7. Remove a file")
+        print("8. Return to home")
+
+        user_input = ask_for_input("\nEnter the option: ", InputType.INTEGER, False)
+
+        match user_input:
+            case 1:
+                # -- Edit purchase information --
+                prompt_and_edit_purchase(ARCHIVE, purchase)
+            case 2:
+                # -- Create a note --
+                if not purchase.notes:
+                    purchase.notes = []
+                    note_id = 1
+                else:
+                    note_id = max(note.get("id", 0) for note in purchase.notes )
+
+                note_text = ask_for_input("Please enter the note: ", InputType.STRING, False)
+                creation_date = dt.date.today().strftime("%d-%m-%Y")
+
+                purchase.notes.append(
+                    {
+                        "id": note_id,
+                        "text": note_text,
+                        "creation_date": creation_date
+                    }
+                )
+                pass
+            case 3:
+                # -- Edit a note --
+                pass
+            case 4:
+                # -- Delete a note --
+                pass
+            case 5:
+                # -- Attach a note --
+                pass
+            case 6:
+                # -- Edit a note --
+                pass
+            case 7:
+                # -- Remove a note --
+                pass
+            case 8:
+                # -- Return to home --
+                break
+    return
+
+def print_purchase_information(purchase: Purchase):
     purchase_id = purchase.id
     name = purchase.name
     date = dt.date.strftime(purchase.purchase_date, "%Y-%m-%d")
@@ -503,8 +558,7 @@ def load_purchase_information(purchase: Purchase):
             print(f"{"":<5}{"Format:":<15}{file.get("format", "")}")
             print(f"{"":<5}{"File Path:":<15}{file.get("file_path", "")}")
             print("")
-    wait_before_continue()
-    return
+
 
 def create_archive(file_path, archive_name):
     default_archive = {
