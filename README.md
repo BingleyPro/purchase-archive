@@ -42,4 +42,4 @@ Finally, install the dependencies and launch:
 
 Download the builds from the releases on the side. For Windows, run the `.exe` fle. For Mac, extract the archive and run `./PersonalPurchaseArchive`.
 
-Note that these are unsigned alpha builds.
+Note that these are unsigned alpha builds. Use at your own risk.

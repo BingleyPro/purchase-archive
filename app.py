@@ -11,6 +11,7 @@ import json
 from enum import Enum
 from typing_extensions import Literal
 import sys, os
+import subprocess
 import math
 
 class InputType(Enum):
@@ -20,6 +21,20 @@ class InputType(Enum):
     DATE = 4
     FILE_PATH = 5
     FILE_PATH_NOT_EXIST = 6
+
+def open_attached_file(file_path: str) -> bool:
+    if not os.path.isfile(file_path):
+        print("File not found.")
+        return False
+
+    if sys.platform == "win32":
+        os.startfile(file_path)
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", file_path])
+    else:
+        return False
+
+    return True
 
 class PurchaseArchive:
     def __init__(self):
@@ -457,7 +472,8 @@ def load_purchase_information(purchase: Purchase):
         print("5. Attach a file")
         print("6. Edit a file")
         print("7. Remove a file")
-        print("8. Return to home")
+        print("8. Open a file")
+        print("9. Return to home")
 
         user_input = ask_for_input("\nEnter the option: ", InputType.INTEGER, False)
 
@@ -590,7 +606,7 @@ def load_purchase_information(purchase: Purchase):
                 file_id = ask_for_input("Enter the file ID to delete: ", InputType.INTEGER, False)
 
                 file = next(
-                    (file for file in purchase.files if file.get("id" == file_id)), None
+                    (file for file in purchase.files if file.get("id") == file_id), None
                 )
 
                 if file is None:
@@ -600,6 +616,21 @@ def load_purchase_information(purchase: Purchase):
                 purchase.files.remove(file)
                 ARCHIVE.save_to_file()
             case 8:
+                # -- Open a file --
+                if purchase.files:
+                    file_id = ask_for_input("Enter the file ID to open: ", InputType.INTEGER, False)
+                    
+                    file = next(
+                        (file for file in purchase.files if file.get("id") == file_id), None
+                    )
+
+                    if file:
+                        file_path = str(file.get("file_path"))
+                        if open_attached_file(file_path):
+                            print("File opened.")
+                        else:
+                            print("Unable to open file.")
+            case 9:
                 # -- Return to home --
                 break
     return
@@ -652,10 +683,16 @@ def print_purchase_information(purchase: Purchase):
         print("")
 
         for file in files:
+            if os.path.isfile(file["file_path"]):
+                status = "Available"
+            else:
+                status = "Missing"
+
             print(f"File {file.get("id", "")}:")
             print(f"{"":<5}{"Name:":<15}{file.get("name", "")}")
             print(f"{"":<5}{"Type:":<15}{file.get("type", "")}")
             print(f"{"":<5}{"Format:":<15}{file.get("format", "")}")
+            print(f"{"":<5}{"Status:":<15}{status}")
             print(f"{"":<5}{"File Path:":<15}{file.get("file_path", "")}")
             print("")
 
@@ -783,7 +820,7 @@ def manage_home_input(user_input):
                         json.dump(data, file, indent=4)
                 case "2":
                     # -- View version information --
-                    print("\nPersonal Purchase Archive (prerelease) by BingleyPro")
+                    print("\nPersonal Purchase Archive v0.1.1 (prerelease) by BingleyPro")
                     wait_before_continue()
         case "8":
             # Exit

@@ -16,7 +16,7 @@ jobs:
 
         steps:
             - name: Download repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Set up Python
               uses: actions/setup-python@v6
@@ -30,7 +30,7 @@ jobs:
               run: python -m PyInstaller --onefile --console --name PersonalPurchaseArchive app.py
 
             - name: Upload executable
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               with:
                 name: PersonalPurchaseArchive-${{ matrix.os }}
                 path: dist/*
