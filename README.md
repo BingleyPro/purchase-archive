@@ -12,9 +12,9 @@ This project currently uses a terminal based interface, along with JSON for stor
 - Search by name, purchase ID, purchase date, brand, category, price, tags or note text.
 - View purchases using a paginated interface
 - Create and switch between JSON archives
-- Add, edit and delete notes assoicated with a purchase
+- Add, edit and delete notes associated with a purchase
 - Create and edit purchase tags
-- Attach, edit, and remove files
+- Attach, edit, and remove file references
 - View purchase details, inluding notes and attachments
 
 ### Missing features

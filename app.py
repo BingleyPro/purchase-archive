@@ -483,6 +483,7 @@ def load_purchase_information(purchase: Purchase):
                         "creation_date": creation_date
                     }
                 )
+                ARCHIVE.save_to_file()
             case 3:
                 # -- Edit a note --
                 if not purchase.notes:
@@ -501,6 +502,7 @@ def load_purchase_information(purchase: Purchase):
 
                 note_text = ask_for_input("Please enter the note text to update: ", InputType.STRING, False)
                 note["text"] = note_text
+                ARCHIVE.save_to_file()
             case 4:
                 # -- Delete a note --
                 if not purchase.notes:
@@ -510,7 +512,7 @@ def load_purchase_information(purchase: Purchase):
                 note_id = ask_for_input("Enter the note ID to delete: ", InputType.INTEGER, False)
 
                 note = next(
-                    (note for note in purchase.notes if note["id" == note_id]), None
+                    (note for note in purchase.notes if note.get("id") == note_id), None
                 )
 
                 if note is None:
@@ -518,6 +520,7 @@ def load_purchase_information(purchase: Purchase):
                     continue
 
                 purchase.notes.remove(note)
+                ARCHIVE.save_to_file()
             case 5:
                 # -- Attach a file --
                 if not purchase.files:
@@ -544,6 +547,7 @@ def load_purchase_information(purchase: Purchase):
                         "file_path": file_path
                     }
                 )
+                ARCHIVE.save_to_file()
             case 6:
                 # -- Edit a file --
                 if not purchase.files:
@@ -553,7 +557,7 @@ def load_purchase_information(purchase: Purchase):
                 file_id = ask_for_input("Enter the file ID to edit: ", InputType.INTEGER, False)
 
                 file = next(
-                    (file for file in purchase.files if file["id" == file_id]), None
+                    (file for file in purchase.files if file.get("id") == file_id), None
                 )
 
                 if file is None:
@@ -576,6 +580,7 @@ def load_purchase_information(purchase: Purchase):
                     file["format"] = file_format
                 if file_path:
                     file["file_path"] = file_path
+                ARCHIVE.save_to_file()
             case 7:
                 # -- Remove a file --
                 if not purchase.files:
@@ -585,7 +590,7 @@ def load_purchase_information(purchase: Purchase):
                 file_id = ask_for_input("Enter the file ID to delete: ", InputType.INTEGER, False)
 
                 file = next(
-                    (file for file in purchase.files if file["id" == file_id]), None
+                    (file for file in purchase.files if file.get("id" == file_id)), None
                 )
 
                 if file is None:
@@ -593,6 +598,7 @@ def load_purchase_information(purchase: Purchase):
                     continue
 
                 purchase.files.remove(file)
+                ARCHIVE.save_to_file()
             case 8:
                 # -- Return to home --
                 break
