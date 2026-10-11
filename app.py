@@ -36,16 +36,21 @@ class PurchaseArchive:
         self.next_id += 1
         return purchase_id
 
-    def load_purchases(self) -> bool:
-        if not os.path.isfile(self.file_path):
-            print(f"Error: {self.file_path} is invalid, archive file may have been moved.")
+    def load_purchases(self, new_file_path: str|None = None) -> bool:
+        if new_file_path == None:
+            file_path = self.file_path
+        else:
+            file_path = new_file_path
+        
+        if not os.path.isfile(file_path):
+            print(f"Error: {file_path} is invalid, archive file may have been moved.")
             return False
         
-        with open(self.file_path, mode='r', newline='') as file:
+        with open(file_path, mode='r', newline='') as file:
             try:
                 data = json.load(file)
             except json.JSONDecodeError:
-                print(f"The file {self.file_path} is not in JSON format.")
+                print(f"The file {file_path} is not in JSON format.")
                 return False
 
         loaded_purchases = []
@@ -79,6 +84,9 @@ class PurchaseArchive:
             self.next_id = minimum_id
 
         self.purchases = loaded_purchases
+
+        if new_file_path is not None:
+            self.file_path = new_file_path
         return True
 
     def save_to_file(self) -> bool:
@@ -162,7 +170,7 @@ class PurchaseArchive:
 
     def print_purchases(self, page_num: int = 1):
         page_size = 10
-        start = (page_num - 1) + page_size
+        start = (page_num - 1) * page_size
         end = start + page_size
 
         display_purchases = self.purchases[start:end]
@@ -344,7 +352,7 @@ def display_home_menu():
         elif user_input == "<":
             page_num = max(page_num - 1, 1)
 
-        elif user_input == 8:
+        elif user_input == "8":
             break
 
         else:
@@ -426,8 +434,60 @@ def wait_before_continue():
     return
 
 def load_purchase_information(purchase: Purchase):
-    print("Work in progress!")
-    # TODO: load purchase information
+    purchase_id = purchase.id
+    name = purchase.name
+    date = dt.date.strftime(purchase.purchase_date, "%Y-%m-%d")
+    brand = purchase.brand
+    category = purchase.category
+    tags = purchase.tags
+
+    tag_display = ""
+    if tags:
+        tag_display = ",".join(tags)
+
+    price = purchase.price
+
+    price_display = f"${purchase.price:.2f}" if purchase.price is not None else "-"
+
+    notes = purchase.notes
+    files = purchase.files
+
+    print(f"\n\n{"Purchase ID:":<15}{purchase_id}")
+    print(f"{"Name:":<15}{name}")
+    print(f"{"Purchase date:":<15}{date}")
+    print(f"{"Price:":<15}{price_display}")
+    print(f"{"Brand:":<15}{brand}")
+    print(f"{"Category:":<15}{category}")
+    print(f"{"Tags:":<15}{tag_display}")
+
+    if notes:
+        print("")
+        print("-" * 65)
+        print(f"NOTES")
+        print("-" * 65)
+        print("")
+
+        for note in notes:
+            print(f"{f"Note {note.get("id", "?")}:":<10}{note.get("text", "")} (created {note.get("creation_date", "?")})")
+            if note.get("linked_files", "") != "":
+                linked_files_display = ", ".join(note.get("linked_files", []))
+                print(f"{"":<5} - linked files are {linked_files_display}.")
+
+    if files:
+        print("")
+        print("-" * 65)
+        print(f"FILES")
+        print("-" * 65)
+        print("")
+
+        for file in files:
+            print(f"File {file.get("id", "")}:")
+            print(f"{"":<5}{"Name:":<15}{file.get("name", "")}")
+            print(f"{"":<5}{"Type:":<15}{file.get("type", "")}")
+            print(f"{"":<5}{"Format:":<15}{file.get("format", "")}")
+            print(f"{"":<5}{"File Path:":<15}{file.get("file_path", "")}")
+            print("")
+    wait_before_continue()
     return
 
 def create_archive(file_path, archive_name):
@@ -505,8 +565,7 @@ def manage_home_input(user_input):
         case "4":
             # -- Load a different archive --
             user_input = ask_for_input("Please enter the file path of the archive: ", InputType.FILE_PATH, False)
-            if ARCHIVE.load_purchases():
-                ARCHIVE.set_file_path(str(user_input))
+            ARCHIVE.load_purchases(str(user_input))
         case "5":
             # -- Open purchase information --
             purchases = search_and_select_purchase(archive=ARCHIVE)
