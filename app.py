@@ -520,13 +520,79 @@ def load_purchase_information(purchase: Purchase):
                 purchase.notes.remove(note)
             case 5:
                 # -- Attach a file --
-                pass
+                if not purchase.files:
+                    purchase.files = []
+                    file_id = 1
+                else:
+                    file_id = max(file.get("id", 0) for file in purchase.files) + 1
+
+                file_name = ask_for_input("Please enter the name of the file: ", InputType.STRING, False)
+                file_desc = ask_for_input("Please enter the description of the file (optional): ", InputType.STRING, True)
+                if file_desc is None:
+                    file_desc = ""
+                file_type = ask_for_input("Please enter the type of the file: ", InputType.STRING, False)
+                file_format = ask_for_input("Please enter the format of the file: ", InputType.STRING, False)
+                file_path = ask_for_input("Please enter the relatife file path of the file: ", InputType.FILE_PATH, False)
+
+                purchase.files.append(
+                    {
+                        "id": file_id,
+                        "name": file_name,
+                        "description": file_desc,
+                        "type": file_type,
+                        "format": file_format,
+                        "file_path": file_path
+                    }
+                )
             case 6:
                 # -- Edit a file --
-                pass
+                if not purchase.files:
+                    print("There are no files.")
+                    continue
+
+                file_id = ask_for_input("Enter the file ID to edit: ", InputType.INTEGER, False)
+
+                file = next(
+                    (file for file in purchase.files if file["id" == file_id]), None
+                )
+
+                if file is None:
+                    print("File not found.")
+                    continue
+
+                file_name = ask_for_input("Please enter the name of the file: ", InputType.STRING, True)
+                file_desc = ask_for_input("Please enter the description of the file (optional): ", InputType.STRING, True)
+                file_type = ask_for_input("Please enter the type of the file: ", InputType.STRING, True)
+                file_format = ask_for_input("Please enter the format of the file: ", InputType.STRING, True)
+                file_path = ask_for_input("Please enter the relatife file path of the file: ", InputType.FILE_PATH, True)
+
+                if file_name:
+                    file["name"] = file_name
+                if file_desc:
+                    file["description"] = file_desc
+                if file_type:
+                    file["type"] = file_type
+                if file_format:
+                    file["format"] = file_format
+                if file_path:
+                    file["file_path"] = file_path
             case 7:
                 # -- Remove a file --
-                pass
+                if not purchase.files:
+                    print("There are no files.")
+                    continue
+
+                file_id = ask_for_input("Enter the file ID to delete: ", InputType.INTEGER, False)
+
+                file = next(
+                    (file for file in purchase.files if file["id" == file_id]), None
+                )
+
+                if file is None:
+                    print("File not found.")
+                    continue
+
+                purchase.files.remove(file)
             case 8:
                 # -- Return to home --
                 break
