@@ -1,7 +1,7 @@
 """
 Personal Purchase Archive
 
-Author: BingleyPro
+Author: Bingley
 Copyright: 2026
 """
 

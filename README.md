@@ -6,7 +6,7 @@ It will (coming soon!) be able store photos, serial numbers, receipts, and other
 
 > Currently an active work in progress! **This project is only recommended for alpha use at this stage.**
 
-This project currently uses a terminal based interface, along with JSON for storing an archive. You can see an example structure of JSON in **database.json**. Note that you shouldn't store sensitive information with this program currently without encryption.
+This project currently uses a terminal based interface, along with JSON for storing an archive. You can see an example structure of JSON in **dev_data/database.json**. Note that you shouldn't store sensitive information with this program currently without encryption.
 
 ## Features
 
@@ -17,19 +17,16 @@ This project currently uses a terminal based interface, along with JSON for stor
 
 ## Current Issues / Missing Important Features
 
-- There is no way to edit notes or files
+- There is no way to attach/edit/remove files to purchases
 - No sorting
 - No automatic backups
-
-## Planned Features
-
-- Upload or link files like PDFs (e.g receipts, photos of the product)
+- Most settings in settings.json don't do anything
 
 ## Potential Features
 
 - Drag-and-drop uploading
 - Graphical interface (Flask or PyQt)
-- Encyription?
+- Encryption?
 
 ## Usage Instructions
 
