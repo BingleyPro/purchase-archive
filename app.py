@@ -316,9 +316,25 @@ def prompt_and_edit_purchase(archive: PurchaseArchive,current_purchase: Purchase
         new_price = current_purchase.price
     if new_price == "%clear%": new_price = None
 
-    # TODO: Edit tags, notes, files
+    new_tags = ask_for_input("To change product tags, type \"%r {tag} %a% {tag}\" to add and remove respectively: ", InputType.STRING, True)
+    if new_tags is None:
+        new_tags = current_purchase.tags
+    elif current_purchase.tags: 
+        new_tags = str(new_tags)
+        tag_list = new_tags.split(" ")
+        tag_pairs = [tag_list[i:i + 2] for i in range(0, len(tag_list), 2)]
 
-    return archive.edit_purchase(current_purchase, Purchase(id=current_purchase.id, name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes, tags=current_purchase.tags, files=current_purchase.files)) # type: ignore
+        for action, tag in tag_pairs:
+            if action == "%r":
+                current_purchase.tags.remove(tag)
+            elif action == "%a":
+                current_purchase.tags.append(tag)
+
+        new_tags = current_purchase.tags
+
+    # TODO: Edit notes, files
+
+    return archive.edit_purchase(current_purchase, Purchase(id=current_purchase.id, name=new_name, purchase_date=new_date, brand=new_brand, category=new_category, price=new_price, notes=current_purchase.notes, tags=new_tags, files=current_purchase.files)) # type: ignore
 
 def display_home_menu():
     page_num = 1
