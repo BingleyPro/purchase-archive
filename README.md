@@ -1,36 +1,45 @@
 # Personal Purchase Archive
 
-This software solution is a tool for keeping track of purchases that you have made. You can then go back in future to review your past purchases and check any key information, like warranty details or serial numbers.
+Personal Purchase Archive is a local application for recording purchases and useful information together. You can store a product's name, brand, price, purchase date and category, and revisit the entry in future to view notes, tags, and attached files, such as receipts, photographs or warranty information.
 
-It will (coming soon!) be able store photos, serial numbers, receipts, and other information about products.
+> Currently an active work in progress! **This project is only recommended for alpha use at this stage. Note that you shouldn't store sensitive information with this program currently without encryption.**
 
-> Currently an active work in progress! **This project is only recommended for alpha use at this stage.**
-
-This project currently uses a terminal based interface, along with JSON for storing an archive. You can see an example structure of JSON in **dev_data/database.json**. Note that you shouldn't store sensitive information with this program currently without encryption.
+This project currently uses a terminal based interface, along with JSON for storing an archive. You can see an example structure of JSON in **dev_data/database.json**.
 
 ## Features
 
-- Add purchases
-- Edit previous purchases
-- Delete previous purchases
-- Load custom archives
+- Add, edit, search for and delete purchases.
+- Search by name, purchase ID, purchase date, brand, category, price, tags or note text.
+- View purchases using a paginated interface
+- Create and switch between JSON archives
+- Add, edit and delete notes assoicated with a purchase
+- Create and edit purchase tags
+- Attach, edit, and remove files
+- View purchase details, inluding notes and attachments
 
-## Current Issues / Missing Important Features
+### Missing features
 
-- There is no way to attach/edit/remove files to purchases
-- No sorting
-- No automatic backups
-- Most settings in settings.json don't do anything
+- A graphical interface.
+- Encryption.
+- Automatic backups.
+- Drag-and-drop attachment uploading
+- Purchase sorting.
+- Most user settings.
 
-## Potential Features
+## Running (from source)
 
-- Drag-and-drop uploading
-- Graphical interface (Flask or PyQt)
-- Encryption?
+To build and run from source, clone the repository. Then create a virtual environment in the root directory:
+`python3 -m venv .venv`
 
-## Usage Instructions
+Activate it:
+`source .venv/bin/activate`
 
-1. Initialise a virtual environment, and open it.
-2. Install everything in requirements.txt
-3. Run **app.py** using python3. Note that if the program asks for a file path, it is relative to the folder that app.py is located in.
-4. Keep backups of your database JSON file!
+Finally, install the dependencies and launch:
+`python3 -m pip install -r requirements.txt`
+`python3 app.py`
+
+## Running (from packaged release)
+
+Download the builds from the releases on the side. For Windows, run the `.exe` fle. For Mac, extract the archive and run `./PersonalPurchaseArchive`.
+
+Note that these are unsigned alpha builds.

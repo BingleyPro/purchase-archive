@@ -492,7 +492,7 @@ def load_purchase_information(purchase: Purchase):
                 note_id = ask_for_input("Enter the note ID to edit: ", InputType.INTEGER, False)
 
                 note = next(
-                    (note for note in purchase.notes if note["id" == note_id]), None
+                    (note for note in purchase.notes if note.get("id") == note_id), None
                 )
 
                 if note is None:
